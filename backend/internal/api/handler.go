@@ -1,5 +1,6 @@
-// Package api is the HTTP layer: it decodes requests, delegates to package calc
-// and maps results and errors to JSON responses.
+// Package api is the HTTP layer
+// Decodes requests, delegates to package calc
+// Maps results and errors to JSON responses.
 package api
 
 import (
@@ -11,11 +12,11 @@ import (
 	"calculator/internal/calc"
 )
 
-// maxBodyBytes caps request bodies; a calculate request is well under 100 bytes.
-const maxBodyBytes = 4 << 10
+// Max Body Cap, 4096 bytes for now
+const maxBodyBytes = 1 << 12
 
-// CalculateRequest is the body of POST /api/v1/calculate. Operands are pointers
-// so a missing field can be told apart from zero.
+// CalculateRequest is the body of POST /api/v1/calculate.
+// Operands are pointers so a missing field can be told apart from zero.
 type CalculateRequest struct {
 	Operation string   `json:"operation"`
 	A         *float64 `json:"a"`
@@ -33,16 +34,18 @@ type ErrorResponse struct {
 	Error ErrorBody `json:"error"`
 }
 
-// ErrorBody carries a stable machine-readable code and a human-readable message.
+// ErrorBody carries code and message.
 type ErrorBody struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
+// Handler error, so it can not be moved to calc package
 var errTrailingData = errors.New("body must contain a single JSON object")
 
-// calcErrors maps domain errors to HTTP responses. 400 means the request itself
-// is malformed; 422 means it is well-formed but mathematically invalid.
+// calcErrors maps domain errors to HTTP responses.
+// 400 means the request itself is malformed;
+// 422 means it is mathematically invalid.
 var calcErrors = []struct {
 	target error
 	status int
@@ -57,8 +60,8 @@ var calcErrors = []struct {
 	{calc.ErrOutOfRange, http.StatusUnprocessableEntity, "out_of_range"},
 }
 
-// NewHandler returns the API routes. It is a plain http.Handler so it can be
-// tested with httptest and mounted under any server.
+// NewHandler returns the API routes.
+// It is a plain http.Handler so it can be tested with httptest.
 func NewHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/calculate", handleCalculate)

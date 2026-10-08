@@ -1,6 +1,6 @@
-// Package calc implements the calculator's arithmetic.
+// Calculator's arithmetic.
 //
-// It is deliberately free of I/O and HTTP concerns
+// It is free of I/O and HTTP concerns
 // Every rule (operand counts, edge cases, rounding) can be unit-tested directly
 package calc
 
