@@ -15,11 +15,14 @@ services:
       start_period: 3s
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        VITE_BASE_URI: ${VITE_BASE_URI:-http://localhost:8081}
     image: calculator-frontend
     restart: unless-stopped
     environment:
-      BACKEND_URL: http://backend:8080
+      BACKEND_URL: "${BACKEND_URL:-http://backend:8080}"
     depends_on:
       backend:
         condition: service_healthy

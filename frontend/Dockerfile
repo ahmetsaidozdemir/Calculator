@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ARG VITE_BASE_URI
 RUN npm run build
 
 # --- Serve it with nginx, proxying /api to the backend --------------------------
