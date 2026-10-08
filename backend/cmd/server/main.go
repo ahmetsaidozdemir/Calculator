@@ -20,6 +20,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rs/cors"
+
 	"calculator/internal/api"
 )
 
@@ -82,7 +84,14 @@ func newRouter() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler)
 	mux.Handle("/healthz", apiHandler)
-	return mux
+
+	// Configure CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:8081", "http://localhost:8080"},
+		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+	})
+
+	return c.Handler(mux)
 }
 
 // probe reports whether the server at baseURL answers /healthz with 200 OK.

@@ -1,8 +1,8 @@
 import type { OperationId } from '../utils/operations';
 
-// Same-origin by default (Vite proxy in development, the Go server in
-// production). Set VITE_API_BASE_URL at build time to point elsewhere.
-const ENDPOINT = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api/v1/calculate`;
+const BASE_URI = `${import.meta.env.VITE_BASE_URI ?? ''}`;
+const ENDPOINT = '/api/v1/calculate';
+const REQUEST_URL = BASE_URI + ENDPOINT
 
 /** A failure reported by the API, or a transport/protocol failure talking to it. */
 export class ApiError extends Error {
@@ -20,7 +20,7 @@ export class ApiError extends Error {
 export async function calculate(operation: OperationId, operands: readonly number[]): Promise<number> {
   let response: Response;
   try {
-    response = await fetch(ENDPOINT, {
+    response = await fetch(REQUEST_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // b is undefined for unary operations, which JSON.stringify omits.

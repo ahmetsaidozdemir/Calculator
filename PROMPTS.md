@@ -63,10 +63,10 @@ UI is looking dull
 4- Make the result panel always visible and inside the design, not an extension that is detached from design
 ```
 
-## Prompt 3: 
+## Prompt 3: CORS
 
 ```
-
+Add CORS to "newRouter" function, also give me "go mod" for installation of package
 ```
 
 ## Prompt 4: 
