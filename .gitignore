@@ -1,6 +1,6 @@
+.DS_Store
 node_modules/
 dist/
 coverage/
 backend/coverage.out
 backend/coverage.html
-.DS_Store

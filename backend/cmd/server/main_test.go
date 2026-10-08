@@ -3,8 +3,6 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,40 +13,8 @@ func serve(h http.Handler, method, path, body string) *httptest.ResponseRecorder
 	return rec
 }
 
-func TestRouterWithFrontend(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("<h1>app</h1>"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	router := newRouter(dir)
-
-	t.Run("API still works", func(t *testing.T) {
-		rec := serve(router, http.MethodPost, "/api/v1/calculate", `{"operation":"add","a":1,"b":2}`)
-		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"result":3`) {
-			t.Errorf("got %d %s", rec.Code, rec.Body.String())
-		}
-	})
-	t.Run("health check", func(t *testing.T) {
-		if rec := serve(router, http.MethodGet, "/healthz", ""); rec.Code != http.StatusOK {
-			t.Errorf("status = %d, want 200", rec.Code)
-		}
-	})
-	t.Run("frontend served at root", func(t *testing.T) {
-		rec := serve(router, http.MethodGet, "/", "")
-		if !strings.Contains(rec.Body.String(), "<h1>app</h1>") {
-			t.Errorf("body = %q, want index.html", rec.Body.String())
-		}
-	})
-	t.Run("unknown API path is JSON 404, not index.html", func(t *testing.T) {
-		rec := serve(router, http.MethodGet, "/api/v1/missing", "")
-		if rec.Code != http.StatusNotFound || strings.Contains(rec.Body.String(), "<h1>") {
-			t.Errorf("got %d %q, want JSON 404", rec.Code, rec.Body.String())
-		}
-	})
-}
-
-func TestRouterWithoutFrontend(t *testing.T) {
-	router := newRouter("")
+func TestRouter(t *testing.T) {
+	router := newRouter()
 	if rec := serve(router, http.MethodGet, "/", ""); rec.Code != http.StatusNotFound {
 		t.Errorf("GET / = %d, want 404 when no frontend is configured", rec.Code)
 	}
@@ -69,7 +35,7 @@ func TestEnvOr(t *testing.T) {
 }
 
 func TestProbe(t *testing.T) {
-	healthy := httptest.NewServer(newRouter(""))
+	healthy := httptest.NewServer(newRouter())
 	defer healthy.Close()
 	if err := probe(healthy.URL); err != nil {
 		t.Errorf("probe(healthy server) = %v, want nil", err)

@@ -3,7 +3,6 @@
 // Configuration (environment variables):
 //
 //	PORT        port to listen on (default 8080)
-//	STATIC_DIR  directory with the built frontend; when set it is served at "/"
 //
 // With -healthcheck the binary instead probes its own /healthz and exits 0 or 1.
 // Container images without a shell or curl use that for their health check.
@@ -22,7 +21,6 @@ import (
 	"time"
 
 	"calculator/internal/api"
-	"calculator/internal/web"
 )
 
 func main() {
@@ -50,7 +48,7 @@ func run(logger *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              ":" + envOr("PORT", "8080"),
-		Handler:           api.Logging(newRouter(os.Getenv("STATIC_DIR")), logger),
+		Handler:           api.Logging(newRouter(), logger),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -79,14 +77,11 @@ func run(logger *slog.Logger) error {
 
 // newRouter mounts the API and, when staticDir is set, the single-page frontend.
 // Unknown /api/ paths stay with the API so they return JSON 404s, never index.html.
-func newRouter(staticDir string) http.Handler {
+func newRouter() http.Handler {
 	apiHandler := api.NewHandler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler)
 	mux.Handle("/healthz", apiHandler)
-	if staticDir != "" {
-		mux.Handle("/", web.SPA(staticDir))
-	}
 	return mux
 }
 

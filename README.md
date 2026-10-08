@@ -20,7 +20,6 @@ A full-stack calculator: a **React + TypeScript** keypad calculator that talks t
 │   └── internal/
 │       ├── calc/            # pure arithmetic + edge cases (no HTTP)
 │       ├── api/             # HTTP handlers, JSON contract, error mapping, logging
-│       └── web/             # optional: serves a built frontend (SPA fallback)
 ├── frontend/
 │   ├── Dockerfile
 │   ├── nginx.conf.template  # static files + /api proxy to the backend
@@ -91,7 +90,7 @@ The Go server can also serve the built frontend itself:
 
 ```bash
 cd frontend && npm install && npm run build && cd ..
-cd backend && STATIC_DIR=../frontend/dist go run ./cmd/server   # http://localhost:8080
+cd backend && go run ./cmd/server   # http://localhost:8080
 ```
 
 ### Configuration
@@ -99,7 +98,6 @@ cd backend && STATIC_DIR=../frontend/dist go run ./cmd/server   # http://localho
 | Component | Variable          | Default                | Meaning                                                              |
 | --------- | ----------------- | ---------------------- | -------------------------------------------------------------------- |
 | backend   | `PORT`            | `8080`                 | Port the server listens on                                           |
-| backend   | `STATIC_DIR`      | *unset*                | Directory with a built frontend; when set it is served at `/`        |
 | frontend image | `BACKEND_URL` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
 | frontend build | `VITE_API_BASE_URL` | *unset* (same origin) | Build-time API base URL; would also require CORS on the backend |
 
@@ -230,4 +228,4 @@ Returns `{"status":"ok"}`; handy for container/orchestrator probes.
 
 ## AI tooling
 
-This project was built with Claude (Anthropic). The prompts used are in [`PROMPTS.md`](PROMPTS.md).
+This project was built using Claude (Anthropic). The prompts used can be found in [`PROMPTS.md`](PROMPTS.md).

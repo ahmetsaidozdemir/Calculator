@@ -1,8 +1,7 @@
 // Package calc implements the calculator's arithmetic.
 //
-// It is deliberately free of I/O and HTTP concerns so every rule (operand
-// counts, edge cases, rounding) can be unit-tested directly and the package can
-// sit behind any transport.
+// It is deliberately free of I/O and HTTP concerns
+// Every rule (operand counts, edge cases, rounding) can be unit-tested directly
 package calc
 
 import (
@@ -12,8 +11,11 @@ import (
 	"strconv"
 )
 
-// Sentinel errors. Match them with errors.Is: returned errors may wrap them
-// with extra context such as the offending operation name.
+// Significant decimal digits for rounding error correction.
+const significantDigits = 15
+
+// Possible Errors.
+// Match them with errors.Is
 var (
 	ErrUnknownOperation  = errors.New("unknown operation")
 	ErrMissingOperand    = errors.New("missing operand")
@@ -24,19 +26,12 @@ var (
 	ErrOutOfRange        = errors.New("result is too large to represent")
 )
 
-// significantDigits is how many significant decimal digits results are rounded
-// to. float64 round-trips 15 digits, so this removes binary representation
-// noise (0.1 + 0.2 = 0.30000000000000004) without discarding real precision.
-const significantDigits = 15
-
 type operation struct {
-	arity int // number of operands: 1 or 2
+	arity int // number of operands: may be 1 or 2
 	apply func(a, b float64) (float64, error)
 }
 
-// operations is the registry of supported operations. Adding one is a single
-// entry here; the HTTP layer and its error mapping need no changes unless the
-// operation introduces a new kind of failure.
+// Supported operations.
 var operations = map[string]operation{
 	"add":      {arity: 2, apply: func(a, b float64) (float64, error) { return a + b, nil }},
 	"subtract": {arity: 2, apply: func(a, b float64) (float64, error) { return a - b, nil }},
@@ -44,13 +39,13 @@ var operations = map[string]operation{
 	"divide":   {arity: 2, apply: divide},
 	"power":    {arity: 2, apply: power},
 	"sqrt":     {arity: 1, apply: sqrt},
-	// percent computes "a percent of b", e.g. a=15, b=200 -> 30.
-	"percent": {arity: 2, apply: func(a, b float64) (float64, error) { return a / 100 * b, nil }},
+	"percent":  {arity: 2, apply: func(a, b float64) (float64, error) { return a / 100 * b, nil }},
 }
 
-// Evaluate applies the named operation. Binary operations need both a and b;
-// unary operations (sqrt) need a and reject b. Pointers distinguish "absent"
-// from a legitimate zero.
+// Evaluate applies the named operation.
+// Binary operations need both a and b;
+// Unary operations (sqrt) need a and reject b.
+// Pointers distinguish "absent" from a legitimate zero.
 func Evaluate(name string, a, b *float64) (float64, error) {
 	op, ok := operations[name]
 	if !ok {
@@ -60,7 +55,10 @@ func Evaluate(name string, a, b *float64) (float64, error) {
 		return 0, fmt.Errorf("%w: a is required", ErrMissingOperand)
 	}
 
-	var second float64
+	var first, second float64
+
+	first = *a
+
 	switch {
 	case op.arity == 2 && b == nil:
 		return 0, fmt.Errorf("%w: b is required for %s", ErrMissingOperand, name)
@@ -70,7 +68,7 @@ func Evaluate(name string, a, b *float64) (float64, error) {
 		second = *b
 	}
 
-	result, err := op.apply(*a, second)
+	result, err := op.apply(first, second)
 	if err != nil {
 		return 0, err
 	}
@@ -98,8 +96,10 @@ func sqrt(a, _ float64) (float64, error) {
 	return math.Sqrt(a), nil
 }
 
-// normalize rejects results JSON cannot represent (NaN, ±Inf), folds -0 into 0
-// and rounds away floating-point noise.
+// Normalize
+// Rejects results JSON cannot represent (NaN, ±Inf)
+// Folds -0 into 0
+// Rounds away floating-point noise.
 func normalize(x float64) (float64, error) {
 	switch {
 	case math.IsNaN(x):
