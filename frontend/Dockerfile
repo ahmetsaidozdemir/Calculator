@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG VITE_BASE_URI
+ARG VITE_BASE_URI=$VITE_BASE_URI
 RUN npm run build
 
 # --- Serve it with nginx, proxying /api to the backend --------------------------
@@ -13,5 +13,5 @@ FROM nginx:1.27-alpine
 # environment variables at start-up (only variables that are set are substituted).
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
-ENV BACKEND_URI=http://backend:8080
+ENV BACKEND_URI=$BACKEND_URI
 EXPOSE 80
