@@ -87,7 +87,8 @@ func newRouter() http.Handler {
 
 	// Configure CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:8080", "http://localhost:80", "http://localhost"},
+		// AllowedOrigins: []string{"http://localhost:8080", "http://localhost:80", "http://localhost"},
+		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
 	})
 
