@@ -1,3 +1,8 @@
+// Unit tests for calculator logic
+//
+// Detached from HTTP and I/O
+// Just logical and mathematical tests
+
 package calc
 
 import (
