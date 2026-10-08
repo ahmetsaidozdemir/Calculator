@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, calculate } from '../api';
+import { ApiError, calculate } from '../services/api';
 import { Calculator } from './Calculator';
 
 // Replace only the network call; keep the real ApiError so instanceof works.
 vi.mock('../api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api')>();
+  const actual = await importOriginal<typeof import('../services/api')>();
   return { ...actual, calculate: vi.fn() };
 });
 

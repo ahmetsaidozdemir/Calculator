@@ -1,4 +1,4 @@
-import type { OperationId } from './operations';
+import type { OperationId } from '../utils/operations';
 
 // Same-origin by default (Vite proxy in development, the Go server in
 // production). Set VITE_API_BASE_URL at build time to point elsewhere.

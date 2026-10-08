@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { actionForKey, KEYS } from '../keys';
-import { useCalculator } from '../useCalculator';
+import { actionForKey, KEYS } from '../utils/keys';
+import { useCalculator } from '../hooks/useCalculator';
 
 export function Calculator() {
   const { state, dispatch } = useCalculator();

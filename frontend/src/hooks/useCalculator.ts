@@ -1,6 +1,6 @@
 import { useEffect, useReducer, type Dispatch } from 'react';
-import { ApiError, calculate } from './api';
-import { initialState, reducer, type Action, type CalculatorState } from './calculatorReducer';
+import { ApiError, calculate } from '../services/api';
+import { initialState, reducer, type Action, type CalculatorState } from '../utils/calculatorReducer';
 
 /** Runs the reducer and performs the backend call whenever it asks for one. */
 export function useCalculator(): { state: CalculatorState; dispatch: Dispatch<Action> } {
