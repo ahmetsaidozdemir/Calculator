@@ -98,7 +98,7 @@ cd backend && go run ./cmd/server   # http://localhost:8080
 | Component | Variable          | Default                | Meaning                                                              |
 | --------- | ----------------- | ---------------------- | -------------------------------------------------------------------- |
 | backend   | `PORT`            | `8080`                 | Port the server listens on                                           |
-| frontend image | `BACKEND_URL` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
+| frontend image | `BACKEND_URI` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
 | frontend build | `VITE_API_BASE_URL` | *unset* (same origin) | Build-time API base URL; would also require CORS on the backend |
 
 ## Tests and coverage
@@ -215,7 +215,7 @@ Returns `{"status":"ok"}`; handy for container/orchestrator probes.
 **Deployment**
 - **Two images, each with one job.** nginx serves the static build and reverse-proxies `/api/`, so the browser has a single origin (no CORS) and the Go service stays private. The backend image is a static binary on distroless (no shell, non-root).
 - **Self-probing health check.** The backend binary supports `-healthcheck`, which GETs its own `/healthz`; compose uses it so the frontend only starts once the API is up.
-- **Backend address is configuration**, not code: `BACKEND_URL` is rendered into the nginx config when the container starts.
+- **Backend address is configuration**, not code: `BACKEND_URI` is rendered into the nginx config when the container starts.
 
 **Out of scope on purpose** (the brief asks to prioritise correctness and clarity): calculation history, full expression parsing with operator precedence and parentheses, authentication, rate limiting, i18n.
 

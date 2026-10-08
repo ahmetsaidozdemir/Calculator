@@ -13,5 +13,5 @@ FROM nginx:1.27-alpine
 # environment variables at start-up (only variables that are set are substituted).
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
-ENV BACKEND_URL=http://backend:8080
+ENV BACKEND_URI=http://backend:8080
 EXPOSE 80
