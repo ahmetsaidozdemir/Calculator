@@ -1,3 +1,8 @@
+// Middlewares
+//
+// Logging
+// WriteHeader
+
 package api
 
 import (
