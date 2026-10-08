@@ -61,7 +61,7 @@ Open <http://localhost:5173>. `make run-backend` and `make run-frontend` are sho
 docker compose up --build        # or: make up
 ```
 
-Open <http://localhost:8080> (set `FRONTEND_PORT=3000` to use another port).
+Open <http://localhost:80> (set `FRONTEND_PORT=80` to use another port).
 
 | Image                | Base                         | Role                                                                 |
 | -------------------- | ---------------------------- | -------------------------------------------------------------------- |
@@ -98,8 +98,8 @@ cd backend && go run ./cmd/server   # http://localhost:8080
 | Component | Variable          | Default                | Meaning                                                              |
 | --------- | ----------------- | ---------------------- | -------------------------------------------------------------------- |
 | backend   | `PORT`            | `8080`                 | Port the server listens on                                           |
-| frontend image | `BACKEND_URI` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
-| frontend build | `VITE_API_BASE_URL` | *unset* (same origin) | Build-time API base URL; would also require CORS on the backend |
+| frontend image | `BACKEND_INTERNAL_URI` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
+| frontend build | `VITE_BACKEND_EXTERNAL_URI` | *unset* (same origin) | Build-time API base URL; would also require CORS on the backend |
 
 ## Tests and coverage
 

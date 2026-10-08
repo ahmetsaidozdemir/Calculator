@@ -1,6 +1,6 @@
 import type { OperationId } from '../utils/operations';
 
-const BASE_URI = `${import.meta.env.VITE_BASE_URI ?? ''}`;
+const BASE_URI = `${import.meta.env.VITE_BACKEND_EXTERNAL_URI ?? ''}`;
 const ENDPOINT = '/api/v1/calculate';
 const REQUEST_URL = BASE_URI + ENDPOINT
 

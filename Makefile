@@ -20,7 +20,9 @@ coverage:
 	cd backend && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && go tool cover -html=coverage.out -o coverage.html
 	cd frontend && npm run test:coverage
 
-# Both containers via docker compose; the app is served on http://localhost:8080
+# Both containers via docker compose;
+# Frontend is served on http://localhost:80
+# Backend is served on http://localhost:8080
 up:
 	docker compose up --build
 

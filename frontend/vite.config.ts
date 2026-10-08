@@ -4,9 +4,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react()],
   server: {
-    // In development the Go API runs on :8080; proxying keeps the frontend
-    // same-origin with it, exactly like production, so no CORS is needed.
-    proxy: { '/api': 'http://localhost:8080' },
+    port: 3000,        // Sets your permanent dev port (e.g., 3000 instead of 5173)
+    strictPort: true,  // Fails if port 3000 is in use, preventing auto-switching to 3001
+    host: true,        // Exposes dev server on network/Docker container interfaces
+    proxy: { '/api': 'http://localhost:80' },
   },
   test: {
     environment: 'jsdom',
