@@ -1,0 +1,28 @@
+Coverage snapshot (regenerate with: make coverage)
+
+== Backend: go test -cover ./... ==
+ok  	calculator/cmd/server	0.008s	coverage: 40.9% of statements
+ok  	calculator/internal/api	0.004s	coverage: 98.0% of statements
+ok  	calculator/internal/calc	0.002s	coverage: 97.1% of statements
+ok  	calculator/internal/web	0.008s	coverage: 100.0% of statements
+total: (statements) 79.6%
+
+== Frontend: npm run test:coverage ==
+ Test Files  6 passed (6)
+      Tests  89 passed (89)
+   Duration  10.26s (transform 328ms, setup 1.41s, collect 404ms, tests 3.53s, environment 2.77s, prepare 513ms)
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |     100 |      100 |     100 |     100 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  App.tsx          |     100 |      100 |     100 |     100 |                   
+  api.ts           |     100 |      100 |     100 |     100 |                   
+  ...torReducer.ts |     100 |      100 |     100 |     100 |                   
+  keys.ts          |     100 |      100 |     100 |     100 |                   
+  operations.ts    |     100 |      100 |     100 |     100 |                   
+  useCalculator.ts |     100 |      100 |     100 |     100 |                   
+ src/components    |     100 |      100 |     100 |     100 |                   
+  Calculator.tsx   |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
