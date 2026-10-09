@@ -25,8 +25,8 @@ type CalculateRequest struct {
 
 // CalculateResponse is the body returned on success.
 type CalculateResponse struct {
-	Operation string  `json:"operation"`
-	Result    float64 `json:"result"`
+	//	Operation string  `json:"operation"`
+	Result float64 `json:"result"`
 }
 
 // ErrorResponse is the body returned for every failure.
@@ -85,7 +85,7 @@ func handleCalculate(w http.ResponseWriter, r *http.Request) {
 		writeCalcError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, CalculateResponse{Operation: req.Operation, Result: result})
+	writeJSON(w, http.StatusOK, CalculateResponse{ /* Operation: req.Operation, */ Result: result})
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
