@@ -6,9 +6,7 @@ run-backend:
 run-frontend:
 	cd frontend && npm run dev
 
-test:
-	test-backend
-	test-frontend
+test: test-backend test-frontend
 
 test-backend:
 	cd backend && go test ./...
