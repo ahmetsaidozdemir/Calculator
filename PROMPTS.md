@@ -78,13 +78,13 @@ UI is looking dull
 Add CORS to "newRouter" function, also give me "go mod" for installation of package
 ```
 
-## Prompt 5: 
+## Prompt 5: Fix Error
 
 ```
-
+If any operator is pressed before sqrt operator, it produces a wrong result, disable sqrt, after any operator is pressed
 ```
 
-## Prompt 5: 
+## Prompt 6: 
 
 ```
 

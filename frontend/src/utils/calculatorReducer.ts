@@ -98,6 +98,7 @@ export function reducer(state: CalculatorState, action: Action): CalculatorState
     case 'operator':
       return chooseOperator(state, action.operator);
     case 'sqrt':
+      if (state.awaiting) return state;
       return { ...state, request: { operation: 'sqrt', operands: [Number(state.entry)], then: { kind: 'unary' } } };
     case 'equals':
       if (!state.pending) return state;
@@ -170,15 +171,15 @@ function resolve(state: CalculatorState, value: number): CalculatorState {
         history: OPERATIONS[request.then.next].format(value),
       };
     case 'unary':
-      // Inside an operation (5 + √9) the result becomes the second operand and
-      // the history keeps showing the operation in progress.
       return {
         ...state,
         request: null,
         entry,
         fresh: true,
         awaiting: false,
-        history: state.pending ? state.history : `${OPERATIONS.sqrt.format(a)} =`,
+        history: state.pending
+          ? `${state.history} ${OPERATIONS.sqrt.format(a)}`
+          : `${OPERATIONS.sqrt.format(a)} =`,
       };
   }
 }

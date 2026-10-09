@@ -190,7 +190,7 @@ describe('results arriving', () => {
 
   it('uses a square root inside an operation as the second operand', () => {
     let state = reducer(run(...type('5'), op('add'), ...type('9'), sqrt), { type: 'resolved', value: 3 });
-    expect(state).toMatchObject({ entry: '3', history: '5 +', awaiting: false, pending: { left: 5, operator: 'add' } });
+    expect(state).toMatchObject({ entry: '3', history: '5 + √9', awaiting: false, pending: { left: 5, operator: 'add' } });
 
     state = reducer(state, equals);
     expect(state.request?.operands).toEqual([5, 3]);

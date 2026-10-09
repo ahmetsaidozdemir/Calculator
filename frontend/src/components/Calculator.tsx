@@ -38,6 +38,7 @@ export function Calculator() {
             aria-label={key.label}
             title={key.label}
             aria-pressed={key.action.type === 'operator' ? key.action.operator === activeOperator : undefined}
+            disabled={state.request !== null || (key.action.type === 'sqrt' && state.awaiting)}
             onClick={() => dispatch(key.action)}
           >
             {key.face}
