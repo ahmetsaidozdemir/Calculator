@@ -85,7 +85,7 @@ func handleCalculate(w http.ResponseWriter, r *http.Request) {
 		writeCalcError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, CalculateResponse{ /* Operation: req.Operation, */ Result: result})
+	writeJSON(w, http.StatusOK, CalculateResponse{Result: result})
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -111,12 +111,14 @@ func decodeJSON(body io.Reader, dst any) error {
 	if err := dec.Decode(dst); err != nil {
 		return err
 	}
-	_, err := dec.Token()
+	var extra any
+	err := dec.Decode(&extra)
+
 	switch {
-	case err == nil:
-		return errTrailingData
 	case errors.Is(err, io.EOF):
 		return nil
+	case err == nil:
+		return errTrailingData
 	default:
 		return err
 	}
@@ -130,7 +132,7 @@ func writeDecodeError(w http.ResponseWriter, err error) {
 	case errors.Is(err, io.EOF):
 		writeError(w, http.StatusBadRequest, "invalid_json", "request body is empty")
 	default:
-		writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body: "+err.Error())
+		writeError(w, http.StatusBadRequest, "invalid_json", "request body must contain a valid JSON object")
 	}
 }
 
