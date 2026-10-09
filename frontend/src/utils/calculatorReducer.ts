@@ -8,7 +8,7 @@ import { OPERATIONS, type BinaryOperationId, type OperationId } from './operatio
  */
 
 /** Longest operand in digits; matches the backend's 15 significant digits. */
-const MAX_DIGITS = 15;
+const MAX_INPUT_DIGITS = 15;
 
 export interface PendingRequest {
   operation: OperationId;
@@ -56,7 +56,11 @@ export const initialState: CalculatorState = {
   request: null,
 };
 
-export const formatNumber = (value: number): string => String(value);
+export const formatNumber = (value: number): string => {
+  if (!Number.isFinite(value)) { throw new RangeError('Calculator result must be finite'); }
+  if (Object.is(value, -0)) { return '0'; }
+  return String(value);
+};
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -76,7 +80,7 @@ export function reducer(state: CalculatorState, action: Action): CalculatorState
   switch (action.type) {
     case 'digit': {
       const entry = state.fresh || state.entry === '0' ? action.digit : state.entry + action.digit;
-      return countDigits(entry) > MAX_DIGITS ? state : typed(state, entry);
+      return countDigits(entry) > MAX_INPUT_DIGITS ? state : typed(state, entry);
     }
     case 'decimal':
       if (state.fresh) return typed(state, '0.');

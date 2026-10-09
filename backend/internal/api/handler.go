@@ -4,6 +4,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -107,21 +108,41 @@ func methodNotAllowed(allowed string) http.HandlerFunc {
 // are errors, so typos like {"operand": ...} fail loudly instead of silently.
 func decodeJSON(body io.Reader, dst any) error {
 	dec := json.NewDecoder(body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(dst); err != nil {
+
+	// Decode the first JSON value without binding it to the request type.
+	var raw json.RawMessage
+	if err := dec.Decode(&raw); err != nil {
 		return err
 	}
-	var extra any
-	err := dec.Decode(&extra)
 
+	// The API requires a JSON object, not null, an array, or a scalar.
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || raw[0] != '{' {
+		return errors.New("request body must be a JSON object")
+	}
+
+	// Reject a second JSON value or any trailing non-whitespace data.
+	var extra json.RawMessage
+	err := dec.Decode(&extra)
 	switch {
 	case errors.Is(err, io.EOF):
-		return nil
+		// Exactly one JSON value.
 	case err == nil:
 		return errTrailingData
 	default:
 		return err
 	}
+
+	// Decode the object into the actual request type and reject
+	// unknown fields.
+	objectDecoder := json.NewDecoder(bytes.NewReader(raw))
+	objectDecoder.DisallowUnknownFields()
+
+	if err := objectDecoder.Decode(dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func writeDecodeError(w http.ResponseWriter, err error) {

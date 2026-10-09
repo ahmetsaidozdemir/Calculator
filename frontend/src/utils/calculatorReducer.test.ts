@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { initialState, reducer, type Action, type CalculatorState } from './calculatorReducer';
+import { formatNumber } from './calculatorReducer';
 import type { BinaryOperationId } from './operations';
 
 const run = (...actions: Action[]): CalculatorState => actions.reduce(reducer, initialState);
@@ -236,5 +237,25 @@ describe('failures', () => {
 
   it('ignores a failure when nothing is in flight', () => {
     expect(reducer(initialState, { type: 'failed', message: 'x' })).toBe(initialState);
+  });
+});
+
+describe('formatNumber', () => {
+  it('formats ordinary numbers', () => {
+    expect(formatNumber(42)).toBe('42');
+    expect(formatNumber(0.5)).toBe('0.5');
+  });
+
+  it('normalizes negative zero', () => {
+    expect(formatNumber(-0)).toBe('0');
+  });
+
+  it('supports scientific notation', () => {
+    expect(formatNumber(1e21)).toBe('1e+21');
+  });
+
+  it('rejects non-finite values', () => {
+    expect(() => formatNumber(Infinity)).toThrow(RangeError);
+    expect(() => formatNumber(NaN)).toThrow(RangeError);
   });
 });
