@@ -1,4 +1,4 @@
-// Command server runs the calculator API and, optionally, the built frontend.
+// Command server runs the calculator API
 //
 // Configuration (environment variables):
 //

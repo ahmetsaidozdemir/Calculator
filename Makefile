@@ -18,7 +18,7 @@ test-frontend:
 # and frontend/coverage/index.html.
 coverage:
 	cd backend && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && go tool cover -html=coverage.out -o coverage.html
-	cd frontend && npm install && npm run test:coverage
+	cd frontend && npm install && npm run test:coverage && rm -r node_modules
 
 # Both containers via docker compose;
 # Frontend is served on http://localhost:80
