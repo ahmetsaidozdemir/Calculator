@@ -1,231 +1,415 @@
 # Calculator
 
-A full-stack calculator: a **React + TypeScript** keypad calculator that talks to a **Go REST API**.
+A full-stack calculator built with **React, TypeScript, and Go**.
+The frontend provides a responsive, keyboard-accessible calculator interface, while a Go REST API handles arithmetic operations and numerical edge cases.
 
-- Operations: add, subtract, multiply, divide, **power**, **square root**, **percent**
-- A real calculator UI: symbol keys, a display built into the device (always visible), chained calculations, and full **keyboard support**
-- Responsive: fills the screen on phones, a centred device on desktop, side-by-side layout on landscape phones; light and dark themes
-- Errors from the API (division by zero, overflow, ...) appear on the calculator's own display
-- Unit tests for both layers (frontend 89 tests / 100% coverage; backend 79.6% overall, 97-100% on the logic packages), coverage snapshot in [`docs/coverage-report.txt`](docs/coverage-report.txt)
-- **Two Docker images** (frontend on nginx, backend on distroless) brought up together with **docker compose**
-- Backend uses Go's standard library for HTTP serving and `github.com/rs/cors` for CORS middleware
+## Features
 
-## Project structure
+- **Arithmetic:** addition, subtraction, multiplication, division, exponentiation, square root, and percentage.
+- **Calculator behavior:** chained calculations, sign changes, decimal input, and error handling.
+- **Keyboard support:** perform calculations without relying exclusively on the on-screen keypad.
+- **Responsive UI:** layouts for mobile, desktop, and landscape phones.
+- **Accessibility:** descriptive control labels, status announcements, and visible calculation states.
+- **API-driven calculations:** arithmetic is handled by the backend, with structured errors displayed in the calculator UI.
+- **Automated tests:** frontend and backend unit tests, with coverage reports.
+- **Containerized deployment:** separate Nginx frontend and distroless Go backend images, orchestrated with Docker Compose.
 
+## Tech stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Backend | Go, `net/http`, JSON |
+| Testing | Frontend unit tests, Go tests, coverage reporting |
+| Web serving | Nginx |
+| Containers | Docker, Docker Compose |
+| Backend runtime | Distroless static image, non-root user |
+
+The backend uses Go's standard library for HTTP serving and `github.com/rs/cors` for CORS middleware.
+
+## Architecture
+
+```text
+Browser
+   |
+   | HTTP
+   v
+Nginx / React frontend
+   |
+   | /api/*
+   v
+Go REST API
+   |
+   v
+Calculation logic
 ```
+
+The frontend and backend have separate responsibilities:
+
+- **Frontend:** manages calculator input, interaction state, rendering, and API requests.
+- **Backend API:** validates requests, executes calculations, and maps failures to structured HTTP responses.
+- **Calculation layer:** contains arithmetic rules and numerical edge-case handling independently of HTTP.
+- **Nginx:** serves the production frontend build and proxies API requests to the Go service.
+
+### Project structure
+
+```text
 .
 ├── backend/
 │   ├── Dockerfile
-│   ├── cmd/server/          # main(): config, timeouts, graceful shutdown, routing, -healthcheck
+│   ├── cmd/
+│   │   └── server/
 │   └── internal/
-│       ├── calc/            # pure arithmetic + edge cases (no HTTP)
-│       ├── api/             # HTTP handlers, JSON contract, error mapping, logging
+│       ├── calc/
+│       └── api/
 ├── frontend/
 │   ├── Dockerfile
-│   ├── nginx.conf.template  # static files + /api proxy to the backend
+│   ├── nginx.conf.template
 │   └── src/
-│       ├── calculatorReducer.ts  # the calculator's behaviour: a pure state machine
-│       ├── useCalculator.ts      # runs the reducer and makes the API calls it asks for
-│       ├── keys.ts               # keypad layout + keyboard shortcuts (data)
-│       ├── operations.ts         # symbols and how each operation is displayed
-│       ├── api.ts                # the only code that calls fetch()
-│       └── components/Calculator.tsx
+│       ├── calculatorReducer.ts
+│       ├── useCalculator.ts
+│       ├── keys.ts
+│       ├── operations.ts
+│       ├── api.ts
+│       └── components/
+│           └── Calculator.tsx
+├── docs/
+│   └── coverage-report.txt
 ├── docker-compose.yml
-├── docs/coverage-report.txt
 ├── Makefile
-└── PROMPTS.md               # AI prompts used
+└── PROMPTS.md
 ```
 
-## Setup
+## Getting started
 
-Prerequisites: **Go 1.22+** and **Node 20+** (Docker is optional).
+### Prerequisites
 
-### Run in development (two terminals)
+- Go 1.22 or later
+- Node.js 20 or later and npm
+- Docker and Docker Compose for containerized execution
+
+### Run locally
+
+Start the backend in the first terminal:
 
 ```bash
-# 1. Backend  ->  http://localhost:8080
 cd backend
 go run ./cmd/server
+```
 
-# 2. Frontend ->  http://localhost:5173  (proxies /api to :8080)
+The backend listens on `http://localhost:8080` by default.
+
+Start the frontend in a second terminal:
+
+```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open <http://localhost:5173>. `make run-backend` and `make run-frontend` are shortcuts.
+Open `http://localhost:5173`. In development, Vite proxies API requests to the backend on port `8080`.
 
-### Run with Docker (two images, one command)
-
-```bash
-docker compose up --build        # or: make up
-```
-
-Open <http://localhost:80> (set `FRONTEND_PORT=80` to use another port).
-
-| Image                | Base                         | Role                                                                 |
-| -------------------- | ---------------------------- | -------------------------------------------------------------------- |
-| `calculator-frontend` | `nginx:1.27-alpine`          | Serves the built React app and proxies `/api/*` to the backend       |
-| `calculator-backend`  | `distroless/static:nonroot`  | The Go API: a static binary, no shell, runs as a non-root user       |
-
-The backend is not published to the host; only the frontend container talks to it, so the browser sees a single origin and no CORS is needed. Compose starts the frontend only once the backend reports healthy (the Go binary probes itself with `-healthcheck`, since distroless has no `curl`). The API is still reachable through the frontend:
+The Makefile also provides shortcuts:
 
 ```bash
-curl -s -X POST localhost:8080/api/v1/calculate -d '{"operation":"add","a":1,"b":2}'
+make run-backend
+make run-frontend
 ```
 
-Build and run the images individually if you prefer:
+### Run with Docker Compose
+
+Build and start both services:
 
 ```bash
-docker build -t calculator-backend ./backend
-docker build -t calculator-frontend ./frontend
-docker network create calc
-docker run -d --rm --network calc --name backend calculator-backend
-docker run --rm --network calc -p 8080:80 calculator-frontend
+docker compose up --build
 ```
 
-### Run as a single process (no Docker)
+Open the frontend at `http://localhost:80` with the default configuration. The host ports can be configured through the environment variables used by `docker-compose.yml`.
 
-The Go server can also serve the built frontend itself:
+The frontend proxies requests under `/api/` to the backend. The backend also has a host port mapping in the current Compose configuration, allowing direct API testing.
+
+To stop the services:
 
 ```bash
-cd frontend && npm install && npm run build && cd ..
-cd backend && go run ./cmd/server   # http://localhost:8080
+docker compose down
 ```
 
-### Configuration
-
-| Component | Variable          | Default                | Meaning                                                              |
-| --------- | ----------------- | ---------------------- | -------------------------------------------------------------------- |
-| backend   | `PORT`            | `8080`                 | Port the server listens on                                           |
-| frontend image | `BACKEND_INTERNAL_URI` | `http://backend:8080` | Where nginx proxies `/api/*` (rendered into the nginx config at start-up) |
-| frontend build | `VITE_BACKEND_EXTERNAL_URI` | *unset* (same origin) | Build-time API base URL; would also require CORS on the backend |
-
-## Tests and coverage
+To follow the logs:
 
 ```bash
-make test        # both layers
-make coverage    # summaries + HTML reports
-
-# or individually
-cd backend  && go test -cover ./...
-cd frontend && npm test            # npm run test:coverage for coverage
+docker compose logs -f
 ```
 
-Latest results (full output in [`docs/coverage-report.txt`](docs/coverage-report.txt)):
+### Container images
 
-| Layer    | Result                                                                                              |
-| -------- | --------------------------------------------------------------------------------------------------- |
-| Backend  | `calc` 97.1% · `api` 98.0% · `web` 100% · `cmd/server` 40.9% · **total 79.6%**                       |
-| Frontend | 89 tests across 6 files, **100%** statements/branches/functions/lines                               |
+| Image | Base | Role |
+|---|---|---|
+| `calculator-frontend` | `nginx:1.27-alpine` | Serves the production-built React application and proxies `/api/*` requests to the backend. |
+| `calculator-backend` | `gcr.io/distroless/static-debian12:nonroot` | Runs the statically compiled Go REST API as a non-root user, without a shell or package manager. |
 
-The low `cmd/server` figure is deliberate: routing, env handling and the health probe are tested, but `main`/`run` (binding a port, OS signals, graceful shutdown) are thin process wiring that I chose not to unit-test. The 2.9% gap in `calc` is one defensive branch that cannot be reached with valid floats.
+The backend image uses a multi-stage build: compilation happens in a Go Alpine build stage, while the runtime image contains the compiled binary. This keeps build tooling out of the production image.
 
-## API
+Docker Compose waits for the backend health check before starting the frontend. Because the distroless image does not include common shell utilities such as `curl`, the backend binary provides its own health-check mode.
 
-Base path `/api/v1`. All bodies are JSON.
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `PORT` | Port on which the Go server listens; defaults to `8080`. |
+| `FRONTEND_PORT` | Host port mapped to the Nginx container's port `80`. |
+| `BACKEND_PORT` | Host port mapped to the backend's port `8080`. |
+| `BACKEND_INTERNAL_URI` | Backend address used by Nginx inside the container network. |
+| `VITE_BACKEND_EXTERNAL_URI` | Optional frontend build-time API base URL for deployments that use a separately hosted API. |
+
+For the default local development setup, the frontend uses Vite's development proxy and the backend listens on port `8080`.
+
+## REST API
+
+The API base path is `/api/v1`. Request and response bodies use JSON.
 
 ### `POST /api/v1/calculate`
 
-| Field       | Type   | Notes                                                              |
-| ----------- | ------ | ------------------------------------------------------------------ |
-| `operation` | string | One of the operations below                                        |
-| `a`         | number | Required                                                           |
-| `b`         | number | Required for binary operations, **rejected** for `sqrt`            |
+Performs a calculation.
 
-| `operation` | Operands | Meaning                       |
-| ----------- | -------- | ----------------------------- |
-| `add`       | `a`, `b` | `a + b`                       |
-| `subtract`  | `a`, `b` | `a - b`                       |
-| `multiply`  | `a`, `b` | `a × b`                       |
-| `divide`    | `a`, `b` | `a ÷ b`                       |
-| `power`     | `a`, `b` | `a` to the power `b`          |
-| `sqrt`      | `a`      | square root of `a`            |
-| `percent`   | `a`, `b` | `a` percent of `b`            |
+**Request fields**
 
-**Success (200)**
+| Field | Type | Description |
+|---|---|---|
+| `operation` | string | Operation to execute. |
+| `a` | number | First operand; required. |
+| `b` | number | Second operand; required for binary operations and rejected for square root. |
+
+**Supported operations**
+
+| Operation | Operands | Calculation |
+|---|---|---|
+| `add` | `a`, `b` | `a + b` |
+| `subtract` | `a`, `b` | `a - b` |
+| `multiply` | `a`, `b` | `a × b` |
+| `divide` | `a`, `b` | `a ÷ b` |
+| `power` | `a`, `b` | `a` raised to the power of `b` |
+| `sqrt` | `a` | Square root of `a` |
+| `percent` | `a`, `b` | `a` percent of `b` |
+
+### Examples
+
+Addition:
 
 ```bash
-curl -s -X POST localhost:8080/api/v1/calculate \
+curl -s -X POST http://localhost:8080/api/v1/calculate \
+  -H 'Content-Type: application/json' \
   -d '{"operation":"add","a":0.1,"b":0.2}'
-# {"operation":"add","result":0.3}
-
-curl -s -X POST localhost:8080/api/v1/calculate \
-  -d '{"operation":"sqrt","a":144}'
-# {"operation":"sqrt","result":12}
-
-curl -s -X POST localhost:8080/api/v1/calculate \
-  -d '{"operation":"percent","a":15,"b":200}'
-# {"operation":"percent","result":30}
 ```
 
-**Errors**: every failure has the same shape: a stable `code` for programs, a `message` for people.
+Square root:
 
 ```bash
-curl -s -i -X POST localhost:8080/api/v1/calculate \
-  -d '{"operation":"divide","a":1,"b":0}'
-# HTTP/1.1 422 Unprocessable Entity
-# {"error":{"code":"division_by_zero","message":"cannot divide by zero"}}
+curl -s -X POST http://localhost:8080/api/v1/calculate \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"sqrt","a":144}'
 ```
 
-| HTTP | `code`                 | When                                                       |
-| ---- | ---------------------- | ---------------------------------------------------------- |
-| 400  | `invalid_json`         | Malformed/empty body, wrong types, unknown fields, trailing data |
-| 400  | `unknown_operation`    | Missing or unsupported `operation`                         |
-| 400  | `missing_operand`      | `a` missing, or `b` missing for a binary operation         |
-| 400  | `unexpected_operand`   | `b` supplied to `sqrt`                                     |
-| 405  | `method_not_allowed`   | Anything but `POST` on `/calculate` (`Allow: POST` is set) |
-| 413  | `request_too_large`    | Body over 4 KiB                                            |
-| 422  | `division_by_zero`     | `x ÷ 0`, or `0` to a negative power                        |
-| 422  | `negative_square_root` | `sqrt` of a negative number                                |
-| 422  | `not_a_real_number`    | e.g. `(-8)` to the power `0.5`                             |
-| 422  | `out_of_range`         | Result overflows float64 (JSON cannot carry `Infinity`)    |
-| 404  | `not_found`            | Unknown path under `/api/`                                 |
-| 500  | `internal_error`       | Bug; details are logged, never returned                    |
+Percentage:
 
-### `GET /healthz`
+```bash
+curl -s -X POST http://localhost:8080/api/v1/calculate \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"percent","a":15,"b":200}'
+```
 
-Returns `{"status":"ok"}`; handy for container/orchestrator probes.
+A successful request returns HTTP `200` with the calculated result and operation:
+
+```json
+{
+  "operation": "add",
+  "result": 0.3
+}
+```
+
+### Error handling
+
+Errors use a consistent response structure with a stable machine-readable code and a human-readable message.
+
+Example: division by zero
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/calculate \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"divide","a":1,"b":0}'
+```
+
+Example response:
+
+```json
+{
+  "error": {
+    "code": "division_by_zero",
+    "message": "cannot divide by zero"
+  }
+}
+```
+
+**Error categories**
+
+| HTTP status | Error code | Meaning |
+|---|---|---|
+| `400` | `invalid_json` | Malformed JSON, invalid field types, unknown fields, or trailing data. |
+| `400` | `unknown_operation` | Missing or unsupported operation. |
+| `400` | `missing_operand` | A required operand is missing. |
+| `400` | `unexpected_operand` | An operand was supplied to an operation that does not accept it. |
+| `405` | `method_not_allowed` | Unsupported HTTP method. |
+| `413` | `request_too_large` | Request body exceeds the configured limit. |
+| `422` | `division_by_zero` | Division by zero or zero raised to a negative power. |
+| `422` | `negative_square_root` | Square root of a negative number. |
+| `422` | `not_a_real_number` | Calculation produces a non-real result. |
+| `422` | `out_of_range` | Result cannot be represented as a valid JSON number. |
+| `404` | `not_found` | Unknown API path. |
+| `500` | `internal_error` | Unexpected server-side failure; internal details are not returned to the client. |
+
+### Health check
+
+`GET /healthz`
+
+Returns:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+This endpoint is used to check backend readiness and supports container health monitoring.
+
+## Frontend engineering
+
+### Reducer-driven state management
+
+The calculator's interaction logic is implemented as a pure state machine in `calculatorReducer.ts`. It handles input, operator selection, chaining, clearing, and error states without performing network requests.
+
+`useCalculator.ts` coordinates the reducer with asynchronous API calls. When a calculation is required, it performs the request and dispatches a success or failure action. This separation makes interaction sequences testable without a live backend.
+
+### Centralized API access
+
+Network requests are centralized in `api.ts`. UI components do not call `fetch` directly. API failures are normalized into a common error type so network errors and server-side errors can be handled consistently.
+
+### Keyboard and accessibility support
+
+The calculator supports keyboard entry for digits, arithmetic operators, decimal input, evaluation, deletion, clearing, square root, and sign changes. Controls have descriptive accessible labels, and the display communicates calculation status and errors.
+
+### Calculation behavior
+
+Calculations are evaluated from left to right rather than using conventional mathematical operator precedence. For example:
+
+```text
+2 + 3 × 4 = 20
+```
+
+The calculator evaluates `2 + 3` first, then multiplies the result by `4`. Input is ignored while a request is in flight to avoid overlapping calculations changing the result out of order.
 
 ## Design decisions and assumptions
 
-**Architecture**
-- **Three thin layers on the backend.** `calc` (pure maths, no HTTP) → `api` (HTTP/JSON mapping) → `cmd/server` (wiring). The rules live in `calc`, so they are tested without HTTP, and `api` tests cover only the contract.
-- **One `calculate` endpoint instead of one route per operation.** Operations are data in a registry (`calc.operations`), so adding one is a single map entry plus a tiny frontend entry, with no new route, handler, or test scaffolding. The trade-off is that the operation is in the body rather than the URL.
-- **Sentinel errors + a mapping table.** `calc` returns typed errors (`errors.Is`); `api` maps them to status/code in one table. No string matching, and unmapped errors become a generic 500 so internals never leak.
-- **400 vs 422.** 400 means "your request is malformed"; 422 means "well-formed, but the maths is invalid". Clients can tell a bug from a user mistake.
-- **Standard-library HTTP server (Go 1.22 `ServeMux`).** Method+path patterns are enough for two routes, so no HTTP framework is needed. The only third-party Go dependency is `github.com/rs/cors`, used to configure CORS middleware.
-- **The Go server can also serve the built UI**, which makes the Docker image a single small, non-root, distroless container and removes any need for CORS.
+### Separation of concerns
 
-**Numbers**
-- **`float64` with results rounded to 15 significant digits.** Without this, `0.1 + 0.2` would show `0.30000000000000004`. 15 digits is float64's guaranteed round-trip precision, so integers up to 10^15 stay exact. Beyond ~9×10^15, float64 itself cannot represent every integer.
-- **`NaN`/`±Inf` are never returned.** JSON cannot encode them, so they become `422` errors; `-0` is normalised to `0`.
-- **`percent` means "`a` percent of `b`"** (15, 200 → 30). Other calculators define `%` differently (e.g. `a / 100`); this is the version that fits a stateless two-operand API, and it is documented in the UI labels ("Percent … Of …").
+The backend is organized into three logical layers:
 
-**Frontend**
-- **A keypad calculator driven by a pure state machine.** All behaviour (typing rules, operator changes, chaining, errors) lives in `calculatorReducer.ts` as `(state, action) => state`, with no I/O. When a key needs the backend, the reducer records a `request`; `useCalculator` performs the call and dispatches `resolved`/`failed`. So every key sequence is unit-tested without a network, and the component is a thin view.
-- **Chaining.** `2 + 3 ×` evaluates `2 + 3` on the server when `×` is pressed, shows `5 ×`, and continues. Evaluation is strictly left-to-right (like a basic desk calculator), not precedence-aware: `2 + 3 × 4` gives 20, not 14. Pressing `=` straight after an operator uses the first operand twice (`5 + =` is 10). Input is ignored while a request is in flight, so results can never arrive out of order.
-- **Invalid input is impossible by construction.** The reducer allows one decimal point, at most 15 digits (the backend's precision) and no stray characters, and the keyboard handler only reacts to mapped keys. What remains, such as division by zero, is the server's call: its message is shown on the display, and the next key dismisses it. The server stays the single source of truth for maths.
-- **The display is part of the device.** It is always rendered (so the layout never jumps), shows the running expression above the entry, shrinks its font for long numbers, and doubles as the error and status area (`role="status"`, `aria-busy` while calculating).
-- **Symbol keys, accessible names.** Keys show `÷ × − + √ ^ % ⌫ ±`; each also has an `aria-label`/tooltip ("Divide", "Square root", ...) so screen readers and hover users still get words. The operator waiting for its second operand is shown pressed (`aria-pressed`).
-- **Keyboard support.** Digits, `+ - * / ^ %`, `.` or `,` (decimal), `Enter`/`=`, `Backspace`, `Esc`/`c` (clear), `r` (square root), `n` (change sign). `Enter` never re-presses the on-screen key you last clicked, and Ctrl/Cmd/Alt shortcuts are left to the browser.
-- **Responsive.** Phones: the calculator fills the screen and the display absorbs spare height (safe-area insets respected). Tablets/desktop: a centred 24rem device. Landscape phones: display left, keys right, so nothing scrolls. Light/dark follow the system; all text/background pairs meet WCAG AA (4.5:1).
-- **All network code lives in `api.ts`.** Components never touch `fetch`; failures surface as one `ApiError` type (including network failure and non-JSON proxy errors).
+- `calc`: arithmetic rules and numerical validation, independent of HTTP.
+- `api`: request validation, JSON handling, HTTP status codes, and error mapping.
+- `cmd/server`: application wiring, server configuration, timeouts, and shutdown behavior.
 
-**Deployment**
-- **Two images, each with one job.** nginx serves the static build and reverse-proxies `/api/`, so the browser has a single origin (no CORS) and the Go service stays private. The backend image is a static binary on distroless (no shell, non-root).
-- **Self-probing health check.** The backend binary supports `-healthcheck`, which GETs its own `/healthz`; compose uses it so the frontend only starts once the API is up.
-- **Backend address is configuration**, not code: `BACKEND_URI` is rendered into the nginx config when the container starts.
+This keeps the calculation logic independently testable and prevents transport concerns from spreading into the core logic.
 
-**Out of scope on purpose** (the brief asks to prioritise correctness and clarity): calculation history, full expression parsing with operator precedence and parentheses, authentication, rate limiting, i18n.
+### One calculation endpoint
 
-## Next steps
+All operations use a single `POST /api/v1/calculate` endpoint. The requested operation is provided in the JSON body rather than encoded in the URL. This keeps the API small and makes the operation contract consistent.
 
-- Make allowed CORS origins configurable for deployments where the frontend is hosted separately
-- Calculation history; locale-aware number formatting (e.g. `1.234,5`)
-- Arbitrary-precision decimals (`math/big`) for financial use cases
-- OpenAPI spec generated from the handler types; CI workflow running `make test` and building both images
+### Explicit error mapping
+
+Calculation errors are mapped to HTTP status codes and stable error codes. Malformed requests use `400 Bad Request`; mathematically invalid operations use `422 Unprocessable Entity`. Unexpected internal failures return a generic `500` response rather than exposing implementation details.
+
+### Numerical precision
+
+The backend uses `float64` and normalizes results to 15 significant digits to avoid exposing common floating-point artifacts such as `0.1 + 0.2` producing `0.30000000000000004`.
+
+This is appropriate for a general-purpose calculator, but binary floating-point is not suitable for all financial calculations. Applications requiring exact decimal arithmetic would need a decimal or arbitrary-precision representation.
+
+### Percentage semantics
+
+The `percent` operation means “`a` percent of `b`.” For example, `15` and `200` produce `30`. This interpretation is explicit in the API and UI rather than relying on an ambiguous `%` convention.
+
+### Container design
+
+The production frontend and backend have separate images and responsibilities. Nginx serves static assets and proxies API requests; the backend runs as a non-root user in a minimal distroless runtime image.
+
+This reduces the runtime image's contents and keeps frontend delivery separate from API execution. Compose health checks coordinate service startup.
+
+## Testing and coverage
+
+Run the complete test suite:
+
+```bash
+make test
+```
+
+Generate coverage summaries and reports:
+
+```bash
+make coverage
+```
+
+Or run tests individually:
+
+```bash
+cd backend
+go test -cover ./...
+```
+
+```bash
+cd frontend
+npm ci
+npm test
+npm run test:coverage
+```
+
+Frontend type checking and production build can also be run with:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+### Coverage snapshot
+
+The repository's existing coverage report records the following results. Re-run the suite before treating these figures as the current results.
+
+| Layer | Coverage result |
+|---|---|
+| Backend `calc` | 97.1% |
+| Backend `api` | 98.0% |
+| Backend `web` | 100% |
+| Backend `cmd/server` | 40.9% |
+| Backend overall | 79.6% |
+| Frontend | 89 tests; 100% statements, branches, functions, and lines |
+
+The backend's lower `cmd/server` coverage reflects process-level wiring such as port binding, signal handling, and graceful shutdown that is not fully exercised by unit tests. The detailed coverage snapshot is available in [`docs/coverage-report.txt`](docs/coverage-report.txt).
+
+## Limitations and scope
+
+The project intentionally focuses on calculation correctness and a clear API/UI boundary. It does not currently include:
+
+- Calculation history or persistent storage.
+- A full expression parser, parentheses, or conventional operator precedence.
+- User authentication or authorization.
+- Rate limiting.
+- Localization or locale-aware number formatting.
+- Arbitrary-precision decimal arithmetic.
+
+These features could be added if the requirements expand, but they are not necessary for the current calculator scope.
 
 ## AI tooling
 
-This project was built using Claude (Anthropic). The prompts used can be found in [`PROMPTS.md`](PROMPTS.md).
+This project was developed with AI assistance. The prompts used during development are documented in [`PROMPTS.md`](PROMPTS.md).
+
+## License
+
+No license is currently specified. Unless a license is added to the repository, reuse and redistribution permissions should not be assumed.
