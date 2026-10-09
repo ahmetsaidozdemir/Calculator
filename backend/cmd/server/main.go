@@ -2,7 +2,7 @@
 //
 // Configuration (environment variables):
 //
-//	PORT        port to listen on (default 8080)
+//	PORT to listen on (default 8080)
 //
 // With -healthcheck the binary instead probes its own /healthz and exits 0 or 1.
 // Container images without a shell or curl use that for their health check.
@@ -30,7 +30,7 @@ func main() {
 	flag.Parse()
 
 	if *healthcheck {
-		if err := probe("http://127.0.0.1:" + envOr("PORT", "8080")); err != nil {
+		if err := probe("http://127.0.0.1:" + getEnv("PORT", "8080")); err != nil {
 			fmt.Fprintln(os.Stderr, "unhealthy:", err)
 			os.Exit(1)
 		}
@@ -49,7 +49,7 @@ func run(logger *slog.Logger) error {
 	defer stop()
 
 	srv := &http.Server{
-		Addr:              ":" + envOr("PORT", "8080"),
+		Addr:              ":" + getEnv("PORT", "8080"),
 		Handler:           api.Logging(newRouter(), logger),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -109,7 +109,7 @@ func probe(baseURL string) error {
 	return nil
 }
 
-func envOr(key, fallback string) string {
+func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
