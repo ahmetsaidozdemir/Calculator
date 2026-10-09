@@ -5,7 +5,7 @@ import { ApiError, calculate } from '../services/api';
 import { Calculator } from './Calculator';
 
 // Replace only the network call; keep the real ApiError so instanceof works.
-vi.mock('../api', async (importOriginal) => {
+vi.mock('../services/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/api')>();
   return { ...actual, calculate: vi.fn() };
 });

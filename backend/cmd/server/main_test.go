@@ -23,7 +23,7 @@ func TestRouter(t *testing.T) {
 	}
 }
 
-func TestgetEnv(t *testing.T) {
+func TestGetEnv(t *testing.T) {
 	t.Setenv("CALC_TEST_VAR", "")
 	if got := getEnv("CALC_TEST_VAR", "fallback"); got != "fallback" {
 		t.Errorf("empty var: got %q, want fallback", got)
