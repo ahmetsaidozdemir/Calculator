@@ -8,7 +8,7 @@ A full-stack calculator: a **React + TypeScript** keypad calculator that talks t
 - Errors from the API (division by zero, overflow, ...) appear on the calculator's own display
 - Unit tests for both layers (frontend 89 tests / 100% coverage; backend 79.6% overall, 97-100% on the logic packages), coverage snapshot in [`docs/coverage-report.txt`](docs/coverage-report.txt)
 - **Two Docker images** (frontend on nginx, backend on distroless) brought up together with **docker compose**
-- Backend uses only the Go standard library; zero third-party Go dependencies
+- Backend uses Go's standard library for HTTP serving and `github.com/rs/cors` for CORS middleware
 
 ## Project structure
 
@@ -194,7 +194,7 @@ Returns `{"status":"ok"}`; handy for container/orchestrator probes.
 - **One `calculate` endpoint instead of one route per operation.** Operations are data in a registry (`calc.operations`), so adding one is a single map entry plus a tiny frontend entry, with no new route, handler, or test scaffolding. The trade-off is that the operation is in the body rather than the URL.
 - **Sentinel errors + a mapping table.** `calc` returns typed errors (`errors.Is`); `api` maps them to status/code in one table. No string matching, and unmapped errors become a generic 500 so internals never leak.
 - **400 vs 422.** 400 means "your request is malformed"; 422 means "well-formed, but the maths is invalid". Clients can tell a bug from a user mistake.
-- **Standard library only (Go 1.22 `ServeMux`).** Method+path patterns are enough for two routes; no framework to learn or update.
+- **Standard-library HTTP server (Go 1.22 `ServeMux`).** Method+path patterns are enough for two routes, so no HTTP framework is needed. The only third-party Go dependency is `github.com/rs/cors`, used to configure CORS middleware.
 - **The Go server can also serve the built UI**, which makes the Docker image a single small, non-root, distroless container and removes any need for CORS.
 
 **Numbers**
@@ -221,7 +221,7 @@ Returns `{"status":"ok"}`; handy for container/orchestrator probes.
 
 ## Next steps
 
-- CORS middleware (configurable origin) if the frontend is ever hosted separately
+- Make allowed CORS origins configurable for deployments where the frontend is hosted separately
 - Calculation history; locale-aware number formatting (e.g. `1.234,5`)
 - Arbitrary-precision decimals (`math/big`) for financial use cases
 - OpenAPI spec generated from the handler types; CI workflow running `make test` and building both images
