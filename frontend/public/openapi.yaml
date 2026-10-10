@@ -1,0 +1,188 @@
+
+openapi: 3.0.3
+
+info:
+  title: Calculator API
+  version: 1.0.0
+  description: |
+    HTTP API for the Calculator application.
+    Verify request validation and error responses against the Go handlers.
+
+servers:
+  - url: /
+
+tags:
+  - name: Calculator
+  - name: Health
+
+paths:
+  /api/v1/calculate:
+    post:
+      tags:
+        - Calculator
+      summary: Calculate a mathematical operation
+      operationId: calculate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/BinaryCalculation"
+                - $ref: "#/components/schemas/SquareRootCalculation"
+              discriminator:
+                propertyName: operation
+            examples:
+              addition:
+                summary: Add two numbers
+                value:
+                  operation: add
+                  a: 10
+                  b: 5
+              squareRoot:
+                summary: Calculate a square root
+                value:
+                  operation: sqrt
+                  a: 25
+              division:
+                summary: Divide two numbers
+                value:
+                  operation: divide
+                  a: 10
+                  b: 2
+      responses:
+        "200":
+          description: Calculation completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - result
+                properties:
+                  result:
+                    type: number
+                    format: double
+              example:
+                result: 15
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Check application health
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+components:
+  schemas:
+    BinaryCalculation:
+      type: object
+      required:
+        - operation
+        - a
+        - b
+      properties:
+        operation:
+          type: string
+          enum:
+            - add
+            - subtract
+            - multiply
+            - divide
+            - power
+            - percent
+          description: |
+            percent calculates a percent of b.
+        a:
+          type: number
+          format: double
+        b:
+          type: number
+          format: double
+
+    SquareRootCalculation:
+      type: object
+      required:
+        - operation
+        - a
+      properties:
+        operation:
+          type: string
+          enum:
+            - sqrt
+        a:
+          type: number
+          format: double
+          minimum: 0
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Invalid JSON or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Endpoint not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    MethodNotAllowed:
+      description: HTTP method not supported
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PayloadTooLarge:
+      description: Request body exceeds the configured limit
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnprocessableEntity:
+      description: Operation or operands are invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

@@ -84,8 +84,8 @@ Add CORS to "newRouter" function, also give me "go mod" for installation of pack
 If any operator is pressed before sqrt operator, it produces a wrong result, disable sqrt, after any operator is pressed
 ```
 
-## Prompt 6: 
+## Prompt 6: OPEN API and Swagger
 
 ```
-
+Add OPEN API documentation and add Swagger
 ```
