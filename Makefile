@@ -1,4 +1,15 @@
-.PHONY: run-backend run-frontend test test-backend test-frontend coverage up down
+.PHONY: build build-backend build-frontend docker-build run-backend run-frontend test test-backend test-frontend coverage up down
+
+build: build-backend build-frontend
+
+build-backend:
+	cd backend && go build -o bin/server ./cmd/server
+
+build-frontend:
+	cd frontend && npm ci && npm run typecheck && npm run build
+
+docker-build:
+	docker compose build
 
 run-backend:
 	cd backend && go run ./cmd/server
@@ -21,7 +32,7 @@ coverage:
 	cd frontend && npm install && npm run test:coverage && rm -r node_modules
 
 # Frontend is served on http://localhost:8080
-# Backend is served on  http://localhost:8081
+# Backend is served on http://localhost:8081
 up:
 	docker compose up --build
 

@@ -1,6 +1,14 @@
+# MacOS files
 .DS_Store
-node_modules/
+
+# Node.js files
 dist/
+node_modules/
+
+# Go build files
+backend/bin/
+
+#Coverage files
 coverage/
 backend/coverage.out
 backend/coverage.html
