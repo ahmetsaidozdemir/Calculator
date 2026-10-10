@@ -23,13 +23,13 @@ test-backend:
 	cd backend && go test ./...
 
 test-frontend:
-	cd frontend && npm install && npm test && rm -r node_modules
+	cd frontend && npm ci && npm test
 
 # backend/coverage.html
 # frontend/coverage/index.html.
 coverage:
 	cd backend && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && go tool cover -html=coverage.out -o coverage.html
-	cd frontend && npm install && npm run test:coverage && rm -r node_modules
+	cd frontend && npm ci && npm run test:coverage
 
 # Frontend is served on http://localhost:8080
 # Backend is served on http://localhost:8081
