@@ -172,7 +172,7 @@ func TestRunReturnsServeError(t *testing.T) {
 	}
 }
 
-// --- realMain ---
+// --- runApplicationin ---
 
 func TestRealMainServesUntilCancelled(t *testing.T) {
 	port := freePort(t)
@@ -181,12 +181,12 @@ func TestRealMainServesUntilCancelled(t *testing.T) {
 	defer cancel()
 
 	done := make(chan int, 1)
-	go func() { done <- realMain(ctx, nil, io.Discard, io.Discard) }()
+	go func() { done <- runApplicationin(ctx, nil, io.Discard, io.Discard) }()
 
 	waitHealthy(t, "http://127.0.0.1:"+port)
 
 	cancel()
-	if code := await(t, done, "realMain to return after cancel"); code != 0 {
+	if code := await(t, done, "runApplicationin to return after cancel"); code != 0 {
 		t.Errorf("exit code = %d, want 0", code)
 	}
 }
@@ -200,7 +200,7 @@ func TestRealMainPortInUse(t *testing.T) {
 	t.Setenv("PORT", portOf(t, "http://"+busy.Addr().String()))
 
 	var stdout bytes.Buffer
-	if code := realMain(context.Background(), nil, &stdout, io.Discard); code != 1 {
+	if code := runApplicationin(context.Background(), nil, &stdout, io.Discard); code != 1 {
 		t.Errorf("exit code = %d, want 1 when the port is taken", code)
 	}
 	if !strings.Contains(stdout.String(), "server failed") {
@@ -213,13 +213,13 @@ func TestRealMainHealthcheck(t *testing.T) {
 	t.Setenv("PORT", portOf(t, srv.URL))
 
 	var stderr bytes.Buffer
-	if code := realMain(context.Background(), []string{"-healthcheck"}, io.Discard, &stderr); code != 0 {
+	if code := runApplicationin(context.Background(), []string{"-healthcheck"}, io.Discard, &stderr); code != 0 {
 		t.Errorf("healthy: exit code = %d, want 0; stderr: %s", code, stderr.String())
 	}
 
 	srv.Close()
 	stderr.Reset()
-	if code := realMain(context.Background(), []string{"-healthcheck"}, io.Discard, &stderr); code != 1 {
+	if code := runApplicationin(context.Background(), []string{"-healthcheck"}, io.Discard, &stderr); code != 1 {
 		t.Errorf("server down: exit code = %d, want 1", code)
 	}
 	if !strings.Contains(stderr.String(), "unhealthy") {
@@ -229,14 +229,14 @@ func TestRealMainHealthcheck(t *testing.T) {
 
 func TestRealMainFlagHandling(t *testing.T) {
 	var stderr bytes.Buffer
-	if code := realMain(context.Background(), []string{"-bogus"}, io.Discard, &stderr); code != 2 {
+	if code := runApplicationin(context.Background(), []string{"-bogus"}, io.Discard, &stderr); code != 2 {
 		t.Errorf("unknown flag: exit code = %d, want 2", code)
 	}
 	if stderr.Len() == 0 {
 		t.Error("unknown flag: expected a message on stderr")
 	}
 
-	if code := realMain(context.Background(), []string{"-h"}, io.Discard, io.Discard); code != 0 {
+	if code := runApplicationin(context.Background(), []string{"-h"}, io.Discard, io.Discard); code != 0 {
 		t.Errorf("-h: exit code = %d, want 0", code)
 	}
 }
