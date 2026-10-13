@@ -97,7 +97,7 @@ describe('the Complex mode switch', () => {
     expect(modeSwitch()).toBeChecked();
 
     await user.keyboard('2+3{Enter}');
-    expect(calculateMock).toHaveBeenCalledWith('add', [2, 3],expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenCalledWith('add', [2, 3], expect.any(AbortSignal));
     expect(modeSwitch()).toBeChecked();
     await waitFor(() => expect(display()).toHaveTextContent('2 + 3 = 5'));
   });
@@ -123,8 +123,8 @@ describe('Calculator, complex mode', () => {
 
     await waitFor(() => expect(display()).toHaveTextContent('2 + 3 × 4 = 14'));
     expect(calculateMock).toHaveBeenCalledTimes(2);
-    expect(calculateMock).toHaveBeenNthCalledWith(1, 'multiply', [3, 4],expect.any(AbortSignal));
-    expect(calculateMock).toHaveBeenNthCalledWith(2, 'add', [2, 12],expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenNthCalledWith(1, 'multiply', [3, 4], expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenNthCalledWith(2, 'add', [2, 12], expect.any(AbortSignal));
   });
 
   it('does not call the backend until = is pressed, and shows the pending expression', async () => {
@@ -189,11 +189,11 @@ describe('Calculator, complex mode', () => {
 
     await tap(user, '2', 'Add', '9', 'Square root');
     await waitFor(() => expect(display()).toHaveTextContent('2 + √9'));
-    expect(calculateMock).toHaveBeenCalledWith('sqrt', [9],expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenCalledWith('sqrt', [9], expect.any(AbortSignal));
 
     await tap(user, 'Equals');
     await waitFor(() => expect(display()).toHaveTextContent('2 + 3 = 5'));
-    expect(calculateMock).toHaveBeenLastCalledWith('add', [2, 3],expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenLastCalledWith('add', [2, 3], expect.any(AbortSignal));
   });
 
   it('disables the square-root key while an operator waits for its operand', async () => {
@@ -226,7 +226,7 @@ describe('Calculator, after switching to simple mode', () => {
 
     await user.click(modeSwitch());
     await tap(user, '2', 'Add', '3', 'Multiply');
-    expect(calculateMock).toHaveBeenNthCalledWith(1, 'add', [2, 3],expect.any(AbortSignal));
+    expect(calculateMock).toHaveBeenNthCalledWith(1, 'add', [2, 3], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('5 × 5'));
 
     await tap(user, '4', 'Equals');
