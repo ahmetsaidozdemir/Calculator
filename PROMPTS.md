@@ -107,8 +107,14 @@ Follow best practices and adapt the solution to the existing architecture.
 On Makefiles coverage step: Move all coverage files into "docs" directory, and make a "coverage-report.txt" after it is done.
 ```
 
-## Prompt 8: Control Tests
+## Prompt 9: Control Tests
 
 ```
 Control tests, does any of them is unnecessary, mark them for deletion.
+```
+
+## Prompt 10: Github CI Action
+
+```
+Add a Github Action that runs tests.
 ```
