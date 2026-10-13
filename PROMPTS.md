@@ -2,7 +2,7 @@
 
 AI tooling: **Claude** (Anthropic), via the Claude chat interface. 
 
-## Prompt 1: Main Bacbone of the calculator structure
+## Prompt 1: Main Backbone of the calculator structure
 
 ```
 Create the needed structures for given services:
@@ -55,7 +55,7 @@ Create the needed structures for given services:
          * Coverage report
 ```
 
-## Prompt 2: 
+## Prompt 2:  Types and Tests
 
 ```
 Add error types, operation types, operands validations
