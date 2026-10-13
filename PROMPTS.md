@@ -142,3 +142,10 @@ Move error display into a pop-up/toast message box.
 ```
 Make sure new design complies with responsive design
 ```
+
+## Prompt 15: Expression Mode
+
+```
+To be able to compute results of complex expressions, add a switchable mode.
+Frontend should parse expressions and send them to backend one-by-one.
+```
