@@ -70,7 +70,7 @@ The frontend and backend have separate responsibilities:
 │   ├── vite.config.ts
 │   ├── public/
 │   │   ├── openapi.yaml       # OpenAPI 3 spec
-│   │   ├── swagger/           # Swagger UI page (served at /swagger/)
+│   │   ├── swagger/           # Swagger UI page (served at /swagger/index.html)
 │   │   └── images/favicon.png
 │   └── src/
 │       ├── App.tsx
@@ -260,10 +260,10 @@ The API is described by an OpenAPI 3 specification, [`frontend/public/openapi.ya
 
 | Setup | Swagger UI | Raw spec |
 |---|---|---|
-| `npm run dev` (with the backend running) | `http://localhost:5173/swagger/` | `http://localhost:5173/openapi.yaml` |
-| Docker Compose | `http://localhost:8080/swagger/` | `http://localhost:8080/openapi.yaml` |
+| `npm run dev` (with the backend running) | `http://localhost:5173/swagger/index.html` | `http://localhost:5173/openapi.yaml` |
+| Docker Compose | `http://localhost:8080/swagger/index.html` | `http://localhost:8080/openapi.yaml` |
 
-Both pages are static files served by the frontend. Keep the trailing slash in `/swagger/`. The Swagger UI scripts and styles load from the unpkg CDN, so the page needs internet access.
+Both pages are static files served by the frontend. Keep the trailing slash in `/swagger/index.html`. The Swagger UI scripts and styles load from the unpkg CDN, so the page needs internet access.
 
 ### Error handling
 
