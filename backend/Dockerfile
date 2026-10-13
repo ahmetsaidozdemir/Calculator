@@ -1,4 +1,4 @@
-# --- Build: static binary, standard library only -------------------------------
+# --- Build: static binary (CGO disabled; dependencies: rs/cors) ----------------
 FROM golang:1.22-alpine AS build
 WORKDIR /src
 COPY . .

@@ -4,7 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG VITE_BACKEND_EXTERNAL_URI=$VITE_BACKEND_EXTERNAL_URI
+# Optional API base URL baked into the bundle (empty = same-origin /api via nginx).
+ARG VITE_BACKEND_EXTERNAL_URI
 RUN npm run build
 
 # --- Serve it with nginx, proxying /api to the backend --------------------------
@@ -13,5 +14,6 @@ FROM nginx:1.27-alpine
 # environment variables at start-up (only variables that are set are substituted).
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
-ENV BACKEND_INTERNAL_URI=$BACKEND_INTERNAL_URI
+# Default for plain `docker run`; docker-compose can override it at runtime.
+ENV BACKEND_INTERNAL_URI=http://backend:8080
 EXPOSE 80
