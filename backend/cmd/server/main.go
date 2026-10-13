@@ -13,7 +13,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,41 +28,57 @@ import (
 )
 
 func main() {
-	healthcheck := flag.Bool("healthcheck", false, "probe the local server's /healthz and exit")
-	flag.Parse()
-
-	if *healthcheck {
-		if err := probe("http://127.0.0.1:" + getEnv("PORT", "8080")); err != nil {
-			fmt.Fprintln(os.Stderr, "unhealthy:", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	if err := run(logger); err != nil {
-		logger.Error("server failed", "error", err)
-		os.Exit(1)
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	code := realMain(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	stop() // os.Exit skips deferred calls, so release the signal handler explicitly
+	os.Exit(code)
 }
 
-func run(logger *slog.Logger) error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	srv := &http.Server{
-		Addr:              ":" + getEnv("PORT", "8080"),
-		Handler:           api.Logging(newRouter(), logger),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       60 * time.Second,
+// realMain is main with its inputs passed in so tests can drive it.
+// It returns the process exit code instead of calling os.Exit.
+func realMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("server", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	healthcheck := fs.Bool("healthcheck", false, "probe the local server's /healthz and exit")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
 	}
+
+	port := getEnv("PORT", "8080")
+
+	if *healthcheck {
+		if err := probe("http://127.0.0.1:" + port); err != nil {
+			fmt.Fprintln(stderr, "unhealthy:", err)
+			return 1
+		}
+		return 0
+	}
+
+	logger := slog.New(slog.NewTextHandler(stdout, nil))
+	ln, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		logger.Error("server failed", "error", err)
+		return 1
+	}
+	if err := run(ctx, logger, ln); err != nil {
+		logger.Error("server failed", "error", err)
+		return 1
+	}
+	return 0
+}
+
+// run serves the API on ln until ctx is cancelled, then shuts down gracefully.
+// A nil return means a clean shutdown.
+func run(ctx context.Context, logger *slog.Logger, ln net.Listener) error {
+	srv := newServer(api.Logging(newRouter(), logger))
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "addr", srv.Addr)
-		errCh <- srv.ListenAndServe()
+		logger.Info("listening", "addr", ln.Addr().String())
+		errCh <- srv.Serve(ln)
 	}()
 
 	select {
@@ -77,8 +95,19 @@ func run(logger *slog.Logger) error {
 	}
 }
 
-// newRouter mounts the API and, when staticDir is set, the single-page frontend.
-// Unknown /api/ paths stay with the API so they return JSON 404s, never index.html.
+// newServer wraps h in an http.Server with timeouts on every phase of a request.
+func newServer(h http.Handler) *http.Server {
+	return &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+}
+
+// newRouter mounts the API routes and wraps them in CORS handling.
+// Unknown /api/ paths stay with the API so they return JSON 404s.
 func newRouter() http.Handler {
 	apiHandler := api.NewHandler()
 	mux := http.NewServeMux()
