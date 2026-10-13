@@ -5,19 +5,43 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Docker's embedded DNS. Using a variable in proxy_pass makes nginx look the backend up
+    # per request (not once at startup), so a stopped, restarted or recreated backend
+    # container is noticed immediately instead of nginx retrying a stale IP.
+    resolver 127.0.0.11 valid=5s ipv6=off;
+    resolver_timeout 2s;
+
     # The browser only ever talks to this origin, so the API needs no CORS.
     location /api/ {
-        proxy_pass ${BACKEND_INTERNAL_URI};
+        set $calc_backend ${BACKEND_INTERNAL_URI};
+        proxy_pass $calc_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Fail fast. The browser gives up after 5s, so nginx must answer before that
+        # with its own structured error rather than leaving the request hanging.
+        proxy_connect_timeout 2s;
+        proxy_send_timeout 4s;
+        proxy_read_timeout 4s;
+        error_page 502 503 504 = @backend_unavailable;
+    }
+
+    # JSON in the same shape as the Go API's errors, so the UI shows a readable message.
+    location @backend_unavailable {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 503 '{"error":{"code":"service_unavailable","message":"the calculator service is unavailable, please try again later"}}';
     }
 
     location = /healthz {
-        proxy_pass http://backend:8080/healthz;
+        set $calc_backend ${BACKEND_INTERNAL_URI};
+        proxy_pass $calc_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 4s;
     }
 
     # Vite fingerprints everything under /assets, so it can be cached forever.

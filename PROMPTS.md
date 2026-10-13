@@ -89,3 +89,14 @@ If any operator is pressed before sqrt operator, it produces a wrong result, dis
 ```
 Add OPEN API documentation and add Swagger
 ```
+
+## Prompt 7: Frontend Timeout for requests
+
+```
+When the backend container is stopped or unavailable, the frontend hangs indefinitely while waiting for a response.
+
+Fix this by implementing a 5-second timeout for backend requests, aborting requests that exceed the limit, and displaying a user-friendly error message.
+Ensure the frontend remains responsive and recovers when the backend becomes available again.
+
+Follow best practices and adapt the solution to the existing architecture.
+```

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, calculate } from './api';
+import { ApiError, calculate, REQUEST_TIMEOUT_MS } from './api';
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -77,5 +77,89 @@ describe('calculate', () => {
     stubFetch(new TypeError('Failed to fetch'));
 
     await expect(calculate('add', [1, 2])).rejects.toMatchObject({ code: 'network_error' });
+  });
+});
+
+describe('calculate timeout', () => {
+  /** A fetch that never answers on its own and rejects with AbortError once its signal fires, like the real one. */
+  function stubHungFetch() {
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')));
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives up after 5 seconds with a timeout error', async () => {
+    vi.useFakeTimers();
+    stubHungFetch();
+
+    const failure = expect(calculate('add', [1, 2])).rejects.toMatchObject({
+      code: 'timeout',
+      message: expect.stringContaining('did not respond'),
+    });
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+
+    await failure;
+    expect(REQUEST_TIMEOUT_MS).toBe(5000);
+  });
+
+  it('aborts the underlying request only once the timeout has elapsed', async () => {
+    vi.useFakeTimers();
+    const fetchMock = stubHungFetch();
+
+    const failure = expect(calculate('add', [1, 2])).rejects.toMatchObject({ code: 'timeout' });
+    const signal = (fetchMock.mock.calls[0][1] as RequestInit).signal as AbortSignal;
+
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS - 1);
+    expect(signal.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(signal.aborted).toBe(true);
+    await failure;
+  });
+
+  it('times out when the server sends headers but stalls on the body', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => ({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+          }),
+      })),
+    );
+
+    const failure = expect(calculate('add', [1, 2])).rejects.toMatchObject({ code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+
+    await failure;
+  });
+
+  it('clears the timer once a response arrives, so nothing fires later', async () => {
+    vi.useFakeTimers();
+    stubFetch(jsonResponse({ operation: 'add', result: 3 }));
+
+    await expect(calculate('add', [1, 2])).resolves.toBe(3);
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('clears the timer when the request fails for another reason', async () => {
+    vi.useFakeTimers();
+    stubFetch(new TypeError('Failed to fetch'));
+
+    await expect(calculate('add', [1, 2])).rejects.toMatchObject({ code: 'network_error' });
+
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

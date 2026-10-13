@@ -2,7 +2,10 @@ import type { OperationId } from '../utils/operations';
 
 const BASE_URI = `${import.meta.env.VITE_BACKEND_EXTERNAL_URI ?? ''}`;
 const ENDPOINT = '/api/v1/calculate';
-const REQUEST_URL = BASE_URI + ENDPOINT
+const REQUEST_URL = BASE_URI + ENDPOINT;
+
+/** How long to wait for the backend before giving up, so a dead service cannot freeze the keypad. */
+export const REQUEST_TIMEOUT_MS = 5_000;
 
 /** A failure reported by the API, or a transport/protocol failure talking to it. */
 export class ApiError extends Error {
@@ -16,26 +19,45 @@ export class ApiError extends Error {
   }
 }
 
-/** Asks the backend to evaluate an operation. Rejects with ApiError on failure. */
+/**
+ * Asks the backend to evaluate an operation. Rejects with ApiError on failure,
+ * including `timeout` when no complete response arrives within REQUEST_TIMEOUT_MS.
+ */
 export async function calculate(operation: OperationId, operands: readonly number[]): Promise<number> {
-  let response: Response;
-  try {
-    response = await fetch(REQUEST_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // b is undefined for unary operations, which JSON.stringify omits.
-      body: JSON.stringify({ operation, a: operands[0], b: operands[1] }),
-    });
-  } catch {
-    throw new ApiError('network_error', 'could not reach the calculator service, please try again');
-  }
+  // Only the timer aborts this controller, so `signal.aborted` means "timed out".
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  const payload: unknown = await response.json().catch(() => null);
-  if (response.ok && hasNumericResult(payload)) {
-    return payload.result;
+  try {
+    let response: Response;
+    try {
+      response = await fetch(REQUEST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // b is undefined for unary operations, which JSON.stringify omits.
+        body: JSON.stringify({ operation, a: operands[0], b: operands[1] }),
+        signal: controller.signal,
+      });
+    } catch {
+      throw controller.signal.aborted ? timeoutError() : networkError();
+    }
+
+    // The timer keeps running while the body is read: 
+    // A server that sends headers and stalls must time out too.
+    const payload: unknown = await response.json().catch(() => null);
+    if (controller.signal.aborted) throw timeoutError();
+
+    if (response.ok && hasNumericResult(payload)) {
+      return payload.result;
+    }
+    throw toApiError(response.status, payload);
+  } finally {
+    clearTimeout(timer);
   }
-  throw toApiError(response.status, payload);
 }
+
+const networkError = () => new ApiError('network_error', 'could not reach the calculator service, please try again');
+const timeoutError = () => new ApiError('timeout', 'the calculator service did not respond in time, please try again');
 
 function hasNumericResult(payload: unknown): payload is { result: number } {
   return typeof payload === 'object' && payload !== null && typeof (payload as { result?: unknown }).result === 'number';
