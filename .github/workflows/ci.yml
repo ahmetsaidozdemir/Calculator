@@ -7,32 +7,106 @@ on:
 
 jobs:
   backend:
+    name: Backend (Go)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+
       - run: go vet ./...
-      - run: go test -race ./...
+
+      - name: Test
+        run: |
+          set -o pipefail
+          go test -race -v -coverprofile=coverage.out ./... 2>&1 | tee test.log
+
+      - name: Publish results to the job summary
+        if: always()
+        run: |
+          {
+            echo "## Backend test results"
+            echo
+            echo "| Passed | Failed | Skipped |"
+            echo "|---|---|---|"
+            echo "| $(grep -cE '^\s*--- PASS' test.log || true) | $(grep -cE '^\s*--- FAIL' test.log || true) | $(grep -cE '^\s*--- SKIP' test.log || true) |"
+            echo
+            echo "### Packages"
+            echo '```'
+            grep -E '^(ok|FAIL|\?)\s' test.log || true
+            echo '```'
+            if [ -f coverage.out ]; then
+              echo
+              echo "**$(go tool cover -func=coverage.out | tail -1 | awk '{print "Total coverage: " $NF}')**"
+              echo
+              echo "<details><summary>Coverage per function</summary>"
+              echo
+              echo '```'
+              go tool cover -func=coverage.out
+              echo '```'
+              echo "</details>"
+            fi
+            echo
+            echo "<details><summary>Full test log</summary>"
+            echo
+            echo '```'
+            cat test.log
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
+    name: Frontend (React)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+
+      - name: Test
+        env:
+          NO_COLOR: "1"
+        run: |
+          set -o pipefail
+          npm run test:coverage -- --reporter=verbose 2>&1 | tee test.log
+
+      - name: Publish results to the job summary
+        if: always()
+        run: |
+          {
+            echo "## Frontend test results"
+            echo
+            echo '```'
+            grep -E '^\s*(Test Files|Tests)\s' test.log || true
+            echo '```'
+            echo
+            echo "<details><summary>Coverage per file</summary>"
+            echo
+            echo '```'
+            grep -E '\|' test.log || true
+            echo '```'
+            echo "</details>"
+            echo
+            echo "<details><summary>Full test log</summary>"
+            echo
+            echo '```'
+            cat test.log
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - run: npm run build

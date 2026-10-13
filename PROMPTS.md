@@ -118,3 +118,9 @@ Control tests, does any of them is unnecessary, mark them for deletion.
 ```
 Add a Github Action that runs tests.
 ```
+
+## Prompt 10: Github CI Action cont.
+
+```
+Make Github Action print its results.
+```
