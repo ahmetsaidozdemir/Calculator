@@ -443,8 +443,8 @@ npm run build
 | Path | Contents |
 |---|---|
 | [`docs/coverage-report.txt`](docs/coverage-report.txt) | Combined text summary: per-package and per-function results for the Go backend, and the per-file table for the frontend. Start here. |
-| `docs/backend-coverage/` | `coverage.out` (raw profile) and `coverage.html` (annotated source, open in a browser). |
-| `docs/frontend-coverage/` | The full Vitest HTML report; open `index.html`. |
+| `docs/backend-coverage/` | [`coverage.out`](docs/backend-coverage/coverage.out) (raw profile) and [`coverage.html`](docs/backend-coverage/coverage.html) (annotated source, open in a browser). |
+| `docs/frontend-coverage/` | The full Vitest HTML report; open [`index.html`](docs/frontend-coverage/index.html) (annotated source, open in a browser). |
 
 Re-run `make coverage` and commit the result after changing code or tests. It needs Go and Node.js installed (it runs `npm ci` itself).
 
