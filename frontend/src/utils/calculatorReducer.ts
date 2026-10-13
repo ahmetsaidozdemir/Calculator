@@ -62,7 +62,7 @@ export const formatNumber = (value: number): string => {
   return String(value);
 };
 
-const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const countDigits = (entry: string) => entry.replace(/[^0-9]/g, '').length;
 

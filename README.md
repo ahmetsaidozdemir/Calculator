@@ -393,12 +393,52 @@ The repository's existing coverage report records the following results. Re-run 
 
 The backend's lower `cmd/server` coverage reflects process-level wiring such as port binding, signal handling, and graceful shutdown that is not fully exercised by unit tests. The detailed coverage snapshot is available in [`docs/coverage-report.txt`](docs/coverage-report.txt).
 
+## Modes and operator precedence
+
+The calculator has two evaluation modes, chosen with the **Complex mode** switch above the display. Switching clears the calculator.
+
+| Mode | Behaviour | `2 + 3 × 4` |
+|------|-----------|-------------|
+| **Complex** (default) | Follows operator precedence. Nothing runs until `=`. | `14` |
+| **Simple** | Runs each operator as soon as the next one is pressed, like a basic pocket calculator. | `20` |
+
+### Precedence (complex mode)
+
+From tightest to loosest binding:
+
+| Level | Operators | Grouping |
+|-------|-----------|----------|
+| 3 | `^` | right to left: `2 ^ 3 ^ 2 = 2 ^ 9 = 512` |
+| 2 | `×` `÷` `%` | left to right: `100 ÷ 5 × 2 = 40` |
+| 1 | `+` `−` | left to right: `10 − 2 − 3 = 5` |
+
+Notes:
+
+- `%` means "a percent of b" (`15 % 200 = 30`) and binds like `×` and `÷`.
+- `±` negates the number you typed, so `2 ± ^ 2` is `(−2) ^ 2 = 4`.
+- `√` still applies to the number on the display, immediately. `2 + 9 √ =` is `2 + 3 = 5`.
+- Pressing `=` straight after an operator uses the displayed number as the missing operand (`5 + =` is `5 + 5`), the same as simple mode.
+
+### How it works
+
+Precedence is handled entirely in the frontend; the backend API is unchanged and still answers one `a op b` per request.
+
+1. While you type, the reducer only records numbers and operators and shows the pending expression (`2 + 3 ×`).
+2. On `=`, a pure function (`utils/expression.ts`) rewrites the expression into postfix order using the shunting-yard algorithm: `2 + 3 × 4` becomes `2 3 4 × +`.
+3. The reducer then walks that order, asking the backend for one operation at a time. `2 + 3 × 4` makes two calls: `3 × 4 = 12`, then `2 + 12 = 14`. Each answer feeds the next call.
+4. If any call fails, the rest of the expression is abandoned and the error is shown next to the full expression.
+
+Both modes share the keypad, the display, the API client and the number-typing rules (`utils/entry.ts`). Each has its own reducer (`calculatorReducer.ts` for simple, `expressionReducer.ts` for complex) and a thin hook, so the two behaviours never share branching logic.
+
+### Keyboard
+
+Typing works in both modes. `Space` toggles the switch when it is focused; `Enter` always means `=`, so it never flips the switch by accident.
+
 ## Limitations and scope
 
 The project intentionally focuses on calculation correctness and a clear API/UI boundary. It does not currently include:
 
 - Calculation history or persistent storage.
-- A full expression parser, parentheses, or conventional operator precedence.
 - User authentication or authorization.
 - Rate limiting.
 - Localization or locale-aware number formatting.

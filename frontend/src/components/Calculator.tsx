@@ -1,9 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { actionForKey, KEYS } from '../utils/keys';
+import { expressionView, simpleView } from '../utils/calculatorView';
 import { useCalculator } from '../hooks/useCalculator';
+import { useExpressionCalculator } from '../hooks/useExpressionCalculator';
+import { ModeSwitch } from './ModeSwitch';
 
-export function Calculator() {
-  const { state, dispatch } = useCalculator();
+/**
+ * Simple mode runs each operator as it is pressed (2 + 3 × 4 is 20).
+ * Complex mode follows operator precedence (2 + 3 × 4 is 14).
+ */
+export type CalculatorMode = 'simple' | 'complex';
+
+export const DEFAULT_MODE: CalculatorMode = 'simple';
+
+export function Calculator({ initialMode = DEFAULT_MODE }: { initialMode?: CalculatorMode }) {
+  const [mode, setMode] = useState<CalculatorMode>(initialMode);
+  // Both engines stay mounted so the keypad, display and switch keep their DOM
+  // (and keyboard focus) when the mode changes; only the active one is drawn.
+  const simple = useCalculator();
+  const complex = useExpressionCalculator();
+
+  const isComplex = mode === 'complex';
+  const view = isComplex ? expressionView(complex.state) : simpleView(simple.state);
+  const { dispatch } = isComplex ? complex : simple;
+
+  function changeMode(nextIsComplex: boolean) {
+    // Each engine has its own state; start both from a clean slate.
+    simple.dispatch({ type: 'clear' });
+    complex.dispatch({ type: 'clear' });
+    setMode(nextIsComplex ? 'complex' : 'simple');
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -18,15 +44,17 @@ export function Calculator() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [dispatch]);
 
-  const text = state.error ?? state.entry;
-  const size = state.error ? 'error' : text.length > 13 ? 'small' : text.length > 9 ? 'medium' : 'large';
-  const activeOperator = state.awaiting ? state.pending?.operator : undefined;
+  const text = view.error ?? view.entry;
+  const size = view.error ? 'error' : text.length > 13 ? 'small' : text.length > 9 ? 'medium' : 'large';
 
   return (
     <div className="calculator">
-      <div className="display" role="status" aria-busy={state.request !== null}>
-        <span className="history">{state.history}</span>{' '}
-        <span className={`entry ${size}`}>{text}</span>
+      <div className="screen">
+        <ModeSwitch checked={isComplex} disabled={view.busy} onChange={changeMode} />
+        <div className="display" role="status" aria-busy={view.busy}>
+          <span className="history">{view.history}</span>{' '}
+          <span className={`entry ${size}`}>{text}</span>
+        </div>
       </div>
 
       <div className="keypad">
@@ -37,8 +65,8 @@ export function Calculator() {
             className={`key key-${key.kind}${key.wide ? ' key-wide' : ''}`}
             aria-label={key.label}
             title={key.label}
-            aria-pressed={key.action.type === 'operator' ? key.action.operator === activeOperator : undefined}
-            disabled={state.request !== null || (key.action.type === 'sqrt' && state.awaiting)}
+            aria-pressed={key.action.type === 'operator' ? key.action.operator === view.activeOperator : undefined}
+            disabled={view.busy || (key.action.type === 'sqrt' && view.awaiting)}
             onClick={() => dispatch(key.action)}
           >
             {key.face}
