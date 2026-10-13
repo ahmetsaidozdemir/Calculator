@@ -9,19 +9,21 @@ export function useCalculator(): { state: CalculatorState; dispatch: Dispatch<Ac
 
   useEffect(() => {
     if (!request) return;
-    let cancelled = false;
-    calculate(request.operation, request.operands).then(
+    // Aborted when the request is replaced or the component unmounts, which also
+    // cancels the in-flight fetch instead of just ignoring its answer.
+    const controller = new AbortController();
+    const { signal } = controller;
+    calculate(request.operation, request.operands, signal).then(
       (value) => {
-        if (!cancelled) dispatch({ type: 'resolved', value });
+        if (!signal.aborted) dispatch({ type: 'resolved', value });
       },
       (error: unknown) => {
+        if (signal.aborted) return;
         const message = error instanceof ApiError ? error.message : 'something went wrong, please try again';
-        if (!cancelled) dispatch({ type: 'failed', message });
+        dispatch({ type: 'failed', message });
       },
     );
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [request]);
 
   return { state, dispatch };

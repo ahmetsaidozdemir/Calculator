@@ -65,7 +65,7 @@ describe('Calculator (mouse and touch)', () => {
 
     await tap(user, '7', 'Divide', '2', 'Equals');
 
-    expect(calculateMock).toHaveBeenCalledWith('divide', [7, 2]);
+    expect(calculateMock).toHaveBeenCalledWith('divide', [7, 2], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('7 ÷ 2 = 3.5'));
   });
 
@@ -75,11 +75,11 @@ describe('Calculator (mouse and touch)', () => {
     render(<Calculator />);
 
     await tap(user, '2', 'Add', '3', 'Multiply');
-    expect(calculateMock).toHaveBeenNthCalledWith(1, 'add', [2, 3]);
+    expect(calculateMock).toHaveBeenNthCalledWith(1, 'add', [2, 3], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('5 × 5'));
 
     await tap(user, '4', 'Equals');
-    expect(calculateMock).toHaveBeenNthCalledWith(2, 'multiply', [5, 4]);
+    expect(calculateMock).toHaveBeenNthCalledWith(2, 'multiply', [5, 4], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('5 × 4 = 20'));
   });
 
@@ -90,7 +90,7 @@ describe('Calculator (mouse and touch)', () => {
 
     await tap(user, '9', 'Square root');
 
-    expect(calculateMock).toHaveBeenCalledWith('sqrt', [9]);
+    expect(calculateMock).toHaveBeenCalledWith('sqrt', [9], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('√9 = 3'));
   });
 
@@ -101,7 +101,7 @@ describe('Calculator (mouse and touch)', () => {
 
     await tap(user, '1', '5', 'Percent of', '2', '0', '0', 'Equals');
 
-    expect(calculateMock).toHaveBeenCalledWith('percent', [15, 200]);
+    expect(calculateMock).toHaveBeenCalledWith('percent', [15, 200], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('15% of 200 = 30'));
   });
 
@@ -145,6 +145,49 @@ describe('Calculator (mouse and touch)', () => {
     resolve(3);
     await waitFor(() => expect(display()).toHaveAttribute('aria-busy', 'false'));
     expect(display()).toHaveTextContent('1 + 2 = 3');
+  });
+
+  it('aborts the in-flight request when unmounted, without updating state afterwards', async () => {
+    const user = userEvent.setup();
+    let signal!: AbortSignal;
+    calculateMock.mockImplementation((_op, _operands, s) => {
+      signal = s!;
+      return new Promise<number>(() => {});
+    });
+    const { unmount } = render(<Calculator />);
+
+    await tap(user, '1', 'Add', '2', 'Equals');
+    expect(signal.aborted).toBe(false);
+
+    unmount();
+
+    expect(signal.aborted).toBe(true);
+  });
+
+  it.each([
+    ['result', (settle: { resolve: (v: number) => void; reject: (e: unknown) => void }) => settle.resolve(3)],
+    ['failure', (settle: { resolve: (v: number) => void; reject: (e: unknown) => void }) =>
+      settle.reject(new ApiError('aborted', 'the request was cancelled'))],
+  ])('ignores a late %s from a request aborted by unmounting', async (_name, settleLate) => {
+    const user = userEvent.setup();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const settle = {} as { resolve: (v: number) => void; reject: (e: unknown) => void };
+    calculateMock.mockReturnValue(
+      new Promise<number>((resolve, reject) => {
+        settle.resolve = resolve;
+        settle.reject = reject;
+      }),
+    );
+    const { unmount } = render(<Calculator />);
+
+    await tap(user, '1', 'Add', '2', 'Equals');
+    unmount();
+    settleLate(settle);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(calculateMock).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it('shows which operator is waiting for its second operand', async () => {
@@ -192,7 +235,7 @@ describe('Calculator (physical keyboard)', () => {
 
     await user.keyboard('12+5{Enter}');
 
-    expect(calculateMock).toHaveBeenCalledWith('add', [12, 5]);
+    expect(calculateMock).toHaveBeenCalledWith('add', [12, 5], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('12 + 5 = 17'));
   });
 
@@ -207,7 +250,7 @@ describe('Calculator (physical keyboard)', () => {
       ['-', 'subtract'],
     ] as const) {
       await user.keyboard(`6${typed}3=`);
-      await waitFor(() => expect(calculateMock).toHaveBeenLastCalledWith(operation, [6, 3]));
+      await waitFor(() => expect(calculateMock).toHaveBeenLastCalledWith(operation, [6, 3], expect.any(AbortSignal)));
     }
   });
 
@@ -240,7 +283,7 @@ describe('Calculator (physical keyboard)', () => {
     await user.keyboard('{Enter}');
 
     expect(calculateMock).toHaveBeenCalledTimes(1);
-    expect(calculateMock).toHaveBeenCalledWith('add', [3, 4]);
+    expect(calculateMock).toHaveBeenCalledWith('add', [3, 4], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('3 + 4 = 7'));
   });
 

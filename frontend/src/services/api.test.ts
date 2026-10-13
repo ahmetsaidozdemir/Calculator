@@ -163,3 +163,89 @@ describe('calculate timeout', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+describe('calculate cancellation', () => {
+  /** Rejects with AbortError when the request's signal fires, like the real fetch. */
+  function stubHungFetch() {
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        const fail = () => reject(new DOMException('aborted', 'AbortError'));
+        // A real fetch rejects straight away when handed a signal that is already aborted.
+        if (init?.signal?.aborted) fail();
+        else init?.signal?.addEventListener('abort', fail);
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('aborts the underlying request when the caller aborts, reporting `aborted` rather than `timeout`', async () => {
+    vi.useFakeTimers();
+    const fetchMock = stubHungFetch();
+    const caller = new AbortController();
+
+    const failure = expect(calculate('add', [1, 2], caller.signal)).rejects.toMatchObject({ code: 'aborted' });
+    const requestSignal = (fetchMock.mock.calls[0][1] as RequestInit).signal as AbortSignal;
+    expect(requestSignal.aborted).toBe(false);
+
+    caller.abort();
+
+    await failure;
+    expect(requestSignal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('rejects with `aborted` when the caller signal is already aborted', async () => {
+    vi.useFakeTimers();
+    const fetchMock = stubHungFetch();
+    const caller = new AbortController();
+    caller.abort();
+
+    await expect(calculate('add', [1, 2], caller.signal)).rejects.toMatchObject({ code: 'aborted' });
+
+    // The request is handed an already-aborted signal, so it never goes out.
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(true);
+  });
+
+  it('reports `aborted` when the caller aborts while the body is being read', async () => {
+    const caller = new AbortController();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => {
+          caller.abort();
+          return { result: 3 };
+        },
+      })),
+    );
+
+    await expect(calculate('add', [1, 2], caller.signal)).rejects.toMatchObject({ code: 'aborted' });
+  });
+
+  it('still times out when a caller signal is supplied', async () => {
+    vi.useFakeTimers();
+    stubHungFetch();
+    const caller = new AbortController();
+
+    const failure = expect(calculate('add', [1, 2], caller.signal)).rejects.toMatchObject({ code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+
+    await failure;
+  });
+
+  it('detaches its listener from the caller signal once finished', async () => {
+    stubFetch(jsonResponse({ result: 3 }));
+    const caller = new AbortController();
+    const remove = vi.spyOn(caller.signal, 'removeEventListener');
+
+    await expect(calculate('add', [1, 2], caller.signal)).resolves.toBe(3);
+
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+  });
+});

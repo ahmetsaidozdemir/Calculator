@@ -20,13 +20,30 @@ export class ApiError extends Error {
 }
 
 /**
- * Asks the backend to evaluate an operation. Rejects with ApiError on failure,
- * including `timeout` when no complete response arrives within REQUEST_TIMEOUT_MS.
+ * Asks the backend to evaluate an operation. Rejects with ApiError on failure:
+ * `timeout` when no complete response arrives within REQUEST_TIMEOUT_MS, and
+ * `aborted` when the caller's `signal` fires first (e.g. the component unmounted).
  */
-export async function calculate(operation: OperationId, operands: readonly number[]): Promise<number> {
-  // Only the timer aborts this controller, so `signal.aborted` means "timed out".
+export async function calculate(
+  operation: OperationId,
+  operands: readonly number[],
+  signal?: AbortSignal,
+): Promise<number> {
+  // One controller drives the request. It is aborted either by the timeout timer
+  // or by the caller's signal, and `timedOut` tells the two apart.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
+
+  const forwardAbort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener('abort', forwardAbort, { once: true });
+
+  // Why the request was cut short, if it was.
+  const abortReason = () => (timedOut ? timeoutError() : abortedError());
 
   try {
     let response: Response;
@@ -39,13 +56,13 @@ export async function calculate(operation: OperationId, operands: readonly numbe
         signal: controller.signal,
       });
     } catch {
-      throw controller.signal.aborted ? timeoutError() : networkError();
+      throw controller.signal.aborted ? abortReason() : networkError();
     }
 
-    // The timer keeps running while the body is read: 
+    // The timer keeps running while the body is read:
     // A server that sends headers and stalls must time out too.
     const payload: unknown = await response.json().catch(() => null);
-    if (controller.signal.aborted) throw timeoutError();
+    if (controller.signal.aborted) throw abortReason();
 
     if (response.ok && hasNumericResult(payload)) {
       return payload.result;
@@ -53,10 +70,12 @@ export async function calculate(operation: OperationId, operands: readonly numbe
     throw toApiError(response.status, payload);
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', forwardAbort);
   }
 }
 
 const networkError = () => new ApiError('network_error', 'could not reach the calculator service, please try again');
+const abortedError = () => new ApiError('aborted', 'the request was cancelled');
 const timeoutError = () => new ApiError('timeout', 'the calculator service did not respond in time, please try again');
 
 function hasNumericResult(payload: unknown): payload is { result: number } {
