@@ -100,3 +100,9 @@ Ensure the frontend remains responsive and recovers when the backend becomes ava
 
 Follow best practices and adapt the solution to the existing architecture.
 ```
+
+## Prompt 8: Coverage
+
+```
+On Makefiles coverage step: Move all coverage files into "docs" directory, and make a "coverage-report.txt" after it is done.
+```

@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
 .PHONY: build build-backend build-frontend docker-build run-backend run-frontend test test-backend test-frontend coverage up down
 
 build: build-backend build-frontend
@@ -25,11 +28,24 @@ test-backend:
 test-frontend:
 	cd frontend && npm ci && npm test
 
-# backend/coverage.html
-# frontend/coverage/index.html.
+# Runs both suites with coverage and collects everything under docs/ (all committed):
+#   docs/coverage-report.txt     combined text summary (start here)
+#   docs/backend-coverage/       coverage.out, coverage.html
+#   docs/frontend-coverage/      full vitest HTML report (open index.html)
+BACKEND_COV  := docs/backend-coverage
+FRONTEND_COV := docs/frontend-coverage
+
 coverage:
-	cd backend && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && go tool cover -html=coverage.out -o coverage.html
-	cd frontend && npm ci && npm run test:coverage
+	rm -rf $(BACKEND_COV) $(FRONTEND_COV)
+	mkdir -p $(BACKEND_COV)
+	( echo "== Backend: go test -coverprofile / go tool cover -func =="; echo; \
+	  cd backend && go test -coverprofile=../$(BACKEND_COV)/coverage.out ./... && \
+	  go tool cover -func=../$(BACKEND_COV)/coverage.out && \
+	  go tool cover -html=../$(BACKEND_COV)/coverage.out -o ../$(BACKEND_COV)/coverage.html ) 2>&1 | tee docs/coverage-report.txt
+	( echo; echo "== Frontend: vitest --coverage =="; echo; \
+	  cd frontend && npm ci --silent && NO_COLOR=1 npm run test:coverage ) 2>&1 | tee -a docs/coverage-report.txt
+	mv frontend/coverage $(FRONTEND_COV)
+	@echo; echo "Coverage written to docs/:"; ls -1 docs
 
 # Frontend is served on http://localhost:8080
 # Backend is served on http://localhost:8081

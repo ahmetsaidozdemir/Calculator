@@ -9,6 +9,9 @@ node_modules/
 backend/bin/
 
 #Coverage files
-coverage/
+frontend/coverage/
 backend/coverage.out
 backend/coverage.html
+
+# Local environment overrides (copy .env.example)
+.env
