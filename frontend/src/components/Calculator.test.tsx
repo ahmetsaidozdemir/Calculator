@@ -113,6 +113,7 @@ describe('Calculator (mouse and touch)', () => {
     await tap(user, '1', 'Divide', '0', 'Equals');
 
     await waitFor(() => expect(display()).toHaveTextContent('1 ÷ 0 = Cannot divide by zero'));
+    expect(display().querySelector('.entry')).toHaveClass('error');
 
     await tap(user, '5');
     expect(display()).toHaveTextContent('5');
@@ -204,7 +205,7 @@ describe('Calculator (mouse and touch)', () => {
     expect(key('Add')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('shrinks the display font for long numbers and uses an error style for messages', async () => {
+  it('shrinks the display font for long numbers', async () => {
     const user = userEvent.setup();
     render(<Calculator />);
     const entry = () => display().querySelector('.entry');
@@ -214,16 +215,6 @@ describe('Calculator (mouse and touch)', () => {
     expect(entry()).toHaveClass('medium');
     await tap(user, '1', '2', '3', '4');
     expect(entry()).toHaveClass('small');
-  });
-
-  it('uses the error style for error messages', async () => {
-    const user = userEvent.setup();
-    calculateMock.mockRejectedValue(new ApiError('division_by_zero', 'cannot divide by zero'));
-    render(<Calculator />);
-
-    await tap(user, '1', 'Divide', '0', 'Equals');
-
-    await waitFor(() => expect(display().querySelector('.entry')).toHaveClass('error'));
   });
 });
 
