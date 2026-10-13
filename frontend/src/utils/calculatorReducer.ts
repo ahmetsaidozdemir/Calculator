@@ -57,7 +57,7 @@ export type Action =
   | { type: 'sqrt' }
   | { type: 'equals' }
   | { type: 'resolved'; value: number }
-  | { type: 'failed'; message: string; kind: ErrorKind }
+  | { type: 'failed'; message: string; kind?: ErrorKind }
   | { type: 'dismissToast' };
 
 export const initialState: CalculatorState = {
@@ -76,13 +76,13 @@ export const formatNumber = (value: number): string => {
   return String(value);
 };
 
-const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const countDigits = (entry: string) => entry.replace(/[^0-9]/g, '').length;
 
 export function reducer(state: CalculatorState, action: Action): CalculatorState {
   if (action.type === 'resolved') return resolve(state, action.value);
-  if (action.type === 'failed') return fail(state, action.message, action.kind);
+  if (action.type === 'failed') {return fail(state, action.message, action.kind ?? 'system');}
   if (action.type === 'dismissToast') return dismissToast(state);
   if (state.request) return state; // a calculation is in flight
 

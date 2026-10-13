@@ -21,14 +21,17 @@ type User = ReturnType<typeof userEvent.setup>;
 const display = () => screen.getByRole('status');
 const key = (name: string) => screen.getByRole('button', { name });
 
+// These tests describe simple mode: each operator runs as soon as the next one is pressed.
+const renderSimple = () => render(<Calculator initialMode="simple" />);
+
 /** Clicks keys by accessible name: digits by their face, others by label. */
 async function tap(user: User, ...names: string[]) {
   for (const name of names) await user.click(key(name));
 }
 
-describe('Calculator (mouse and touch)', () => {
+describe('Calculator, simple mode (mouse and touch)', () => {
   it('shows the display and a keypad of symbol keys from the start', () => {
-    render(<Calculator />);
+    renderSimple();
 
     expect(display()).toHaveTextContent('0');
     expect(key('Divide')).toHaveTextContent('÷');
@@ -43,7 +46,7 @@ describe('Calculator (mouse and touch)', () => {
 
   it('types numbers on the display, including decimals, sign and backspace', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', '2', 'Decimal point', '5');
     expect(display()).toHaveTextContent('12.5');
@@ -61,7 +64,7 @@ describe('Calculator (mouse and touch)', () => {
   it('divides: calls the API and shows the expression with its result', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(3.5);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '7', 'Divide', '2', 'Equals');
 
@@ -72,7 +75,7 @@ describe('Calculator (mouse and touch)', () => {
   it('chains operations, evaluating the first when the next operator is pressed', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValueOnce(5).mockResolvedValueOnce(20);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '2', 'Add', '3', 'Multiply');
     expect(calculateMock).toHaveBeenNthCalledWith(1, 'add', [2, 3], expect.any(AbortSignal));
@@ -86,7 +89,7 @@ describe('Calculator (mouse and touch)', () => {
   it('takes a square root of the displayed number', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(3);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '9', 'Square root');
 
@@ -97,7 +100,7 @@ describe('Calculator (mouse and touch)', () => {
   it('computes a percentage of a number', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(30);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', '5', 'Percent of', '2', '0', '0', 'Equals');
 
@@ -108,7 +111,7 @@ describe('Calculator (mouse and touch)', () => {
   it('shows a short red "Error" on the display and the explanation in a pop-up outside the calculator', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new ApiError('division_by_zero', 'cannot divide by zero', 422));
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', 'Divide', '0', 'Equals');
 
@@ -124,7 +127,7 @@ describe('Calculator (mouse and touch)', () => {
   it('removes the pop-up and recovers on the next digit after a calculation error', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new ApiError('division_by_zero', 'cannot divide by zero', 422));
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', 'Divide', '0', 'Equals');
     await screen.findByRole('alert');
@@ -138,7 +141,7 @@ describe('Calculator (mouse and touch)', () => {
   it('closes the pop-up with its button but leaves the error on the display', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new ApiError('negative_square_root', 'cannot take the square root of a negative number', 422));
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '4', 'Change sign', 'Square root');
     await screen.findByRole('alert');
@@ -155,7 +158,7 @@ describe('Calculator (mouse and touch)', () => {
     calculateMock
       .mockRejectedValueOnce(new ApiError('timeout', 'the calculator service did not respond in time, please try again'))
       .mockResolvedValueOnce(4);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '8', 'Divide', '2', 'Equals');
 
@@ -176,7 +179,7 @@ describe('Calculator (mouse and touch)', () => {
   it('hides unexpected error details behind a generic message in the pop-up', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new Error('boom: stack trace'));
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', 'Add', '2', 'Equals');
 
@@ -189,7 +192,7 @@ describe('Calculator (mouse and touch)', () => {
     const user = userEvent.setup();
     let resolve!: (value: number) => void;
     calculateMock.mockReturnValue(new Promise<number>((r) => (resolve = r)));
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '1', 'Add', '2', 'Equals');
     expect(display()).toHaveAttribute('aria-busy', 'true');
@@ -247,7 +250,7 @@ describe('Calculator (mouse and touch)', () => {
 
   it('shows which operator is waiting for its second operand', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
 
     expect(key('Add')).toHaveAttribute('aria-pressed', 'false');
 
@@ -261,7 +264,7 @@ describe('Calculator (mouse and touch)', () => {
 
   it('shrinks the display font for long numbers', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
     const entry = () => display().querySelector('.entry');
 
     expect(entry()).toHaveClass('large');
@@ -272,11 +275,11 @@ describe('Calculator (mouse and touch)', () => {
   });
 });
 
-describe('Calculator (physical keyboard)', () => {
+describe('Calculator, simple mode (physical keyboard)', () => {
   it('types and calculates with the keyboard', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(17);
-    render(<Calculator />);
+    renderSimple();
 
     await user.keyboard('12+5{Enter}');
 
@@ -287,7 +290,7 @@ describe('Calculator (physical keyboard)', () => {
   it('maps *, /, - and = to the matching operations', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(0);
-    render(<Calculator />);
+    renderSimple();
 
     for (const [typed, operation] of [
       ['*', 'multiply'],
@@ -301,7 +304,7 @@ describe('Calculator (physical keyboard)', () => {
 
   it('accepts a comma as the decimal separator', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
 
     await user.keyboard('1,5');
 
@@ -310,7 +313,7 @@ describe('Calculator (physical keyboard)', () => {
 
   it('supports Backspace and Escape', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
 
     await user.keyboard('123{Backspace}');
     expect(display()).toHaveTextContent('12');
@@ -322,7 +325,7 @@ describe('Calculator (physical keyboard)', () => {
   it('does not re-press the focused on-screen key when Enter is hit', async () => {
     const user = userEvent.setup();
     calculateMock.mockResolvedValue(7);
-    render(<Calculator />);
+    renderSimple();
 
     await tap(user, '3', 'Add', '4'); // focus is now on the "4" key
     await user.keyboard('{Enter}');
@@ -335,7 +338,7 @@ describe('Calculator (physical keyboard)', () => {
   it('lets Enter close the pop-up instead of pressing =', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new ApiError('timeout', 'the calculator service did not respond in time'));
-    render(<Calculator />);
+    renderSimple();
 
     await user.keyboard('1+2{Enter}');
     await screen.findByRole('alert');
@@ -351,7 +354,7 @@ describe('Calculator (physical keyboard)', () => {
 
   it('leaves browser shortcuts and unmapped keys alone', async () => {
     const user = userEvent.setup();
-    render(<Calculator />);
+    renderSimple();
 
     await user.keyboard('5');
     await user.keyboard('{Control>}c{/Control}');
@@ -362,7 +365,7 @@ describe('Calculator (physical keyboard)', () => {
 
   it('stops listening to the keyboard when unmounted', async () => {
     const user = userEvent.setup();
-    const { unmount } = render(<Calculator />);
+    const { unmount } = renderSimple();
     unmount();
 
     await user.keyboard('5');
