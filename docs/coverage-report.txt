@@ -37,34 +37,46 @@ npm notice run vitest run --coverage
  RUN  v5.0.4 /Users/said/Downloads/Calculator/frontend
       Coverage enabled with v8
 
- ✓ src/utils/operations.test.ts (10 tests) 3ms
- ✓ src/utils/keys.test.ts (19 tests) 7ms
- ✓ src/utils/calculatorReducer.test.ts (47 tests) 9ms
- ✓ src/services/api.test.ts (26 tests) 21ms
- ✓ src/App.test.tsx (1 test) 111ms
- ✓ src/components/Calculator.test.tsx (25 tests) 1734ms
+ ✓ src/utils/keys.test.ts (19 tests) 4ms
+ ✓ src/services/api.test.ts (26 tests) 18ms
+ ✓ src/utils/operations.test.ts (10 tests) 5ms
+ ✓ src/utils/expression.test.ts (14 tests) 6ms
+ ✓ src/utils/calculatorView.test.ts (7 tests) 4ms
+ ✓ src/utils/expressionReducer.test.ts (49 tests) 11ms
+ ✓ src/utils/calculatorReducer.test.ts (47 tests) 15ms
+ ✓ src/utils/entry.test.ts (11 tests) 19ms
+ ✓ src/App.test.tsx (1 test) 91ms
+ ✓ src/components/CalculatorModes.test.tsx (18 tests) 1300ms
+ ✓ src/components/Calculator.test.tsx (25 tests) 1781ms
 
- Test Files  6 passed (6)
-      Tests  128 passed (128)
-   Start at  05:53:04
-   Duration  2.56s (environment 45%, tests 34%, setup 10%, transform 5%, worker 4%, import 2%)
+ Test Files  11 passed (11)
+      Tests  227 passed (227)
+   Start at  05:58:12
+   Duration  2.86s (environment 50%, tests 29%, setup 11%, transform 5%, worker 3%, import 2%)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   99.43 |    99.31 |     100 |     100 |                   
+All files          |   99.31 |     98.4 |     100 |   99.59 |                   
  src               |     100 |      100 |     100 |     100 |                   
   App.tsx          |     100 |      100 |     100 |     100 |                   
  src/components    |     100 |      100 |     100 |     100 |                   
   Calculator.tsx   |     100 |      100 |     100 |     100 |                   
   ErrorToast.tsx   |     100 |      100 |     100 |     100 |                   
+  ModeSwitch.tsx   |     100 |      100 |     100 |     100 |                   
  src/hooks         |     100 |      100 |     100 |     100 |                   
+  ...endRequest.ts |     100 |      100 |     100 |     100 |                   
   useCalculator.ts |     100 |      100 |     100 |     100 |                   
+  ...Calculator.ts |     100 |      100 |     100 |     100 |                   
  src/services      |     100 |      100 |     100 |     100 |                   
   api.ts           |     100 |      100 |     100 |     100 |                   
- src/utils         |   98.85 |    98.78 |     100 |     100 |                   
-  ...torReducer.ts |   98.63 |    98.71 |     100 |     100 | 118               
+ src/utils         |   98.93 |     97.7 |     100 |   99.34 |                   
+  ...torReducer.ts |   98.63 |     97.5 |     100 |     100 | 85,118            
+  ...ulatorView.ts |     100 |      100 |     100 |     100 |                   
+  entry.ts         |     100 |      100 |     100 |     100 |                   
+  expression.ts    |     100 |     92.3 |     100 |     100 | 72                
+  ...ionReducer.ts |   98.24 |    98.03 |     100 |   97.95 | 92                
   keys.ts          |     100 |      100 |     100 |     100 |                   
   operations.ts    |     100 |      100 |     100 |     100 |                   
 -------------------|---------|----------|---------|---------|-------------------
