@@ -174,7 +174,7 @@ func TestRunReturnsServeError(t *testing.T) {
 
 // --- runApplication ---
 
-func TestRealMainServesUntilCancelled(t *testing.T) {
+func TestRunApplicationServesUntilCancelled(t *testing.T) {
 	port := freePort(t)
 	t.Setenv("PORT", port)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -191,7 +191,7 @@ func TestRealMainServesUntilCancelled(t *testing.T) {
 	}
 }
 
-func TestRealMainPortInUse(t *testing.T) {
+func TestRunApplicationPortInUse(t *testing.T) {
 	busy, err := net.Listen("tcp", ":0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -208,7 +208,7 @@ func TestRealMainPortInUse(t *testing.T) {
 	}
 }
 
-func TestRealMainHealthcheck(t *testing.T) {
+func TestRunApplicationHealthcheck(t *testing.T) {
 	srv := httptest.NewServer(newRouter())
 	t.Setenv("PORT", portOf(t, srv.URL))
 
@@ -227,7 +227,7 @@ func TestRealMainHealthcheck(t *testing.T) {
 	}
 }
 
-func TestRealMainFlagHandling(t *testing.T) {
+func TestRunApplicationFlagHandling(t *testing.T) {
 	var stderr bytes.Buffer
 	if code := runApplication(context.Background(), []string{"-bogus"}, io.Discard, &stderr); code != 2 {
 		t.Errorf("unknown flag: exit code = %d, want 2", code)
