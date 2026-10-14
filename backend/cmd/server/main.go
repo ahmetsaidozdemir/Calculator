@@ -29,14 +29,14 @@ import (
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	code := runApplicationin(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	code := runApplication(ctx, os.Args[1:], os.Stdout, os.Stderr)
 	stop() // os.Exit skips deferred calls, so release the signal handler explicitly
 	os.Exit(code)
 }
 
-// runApplicationin is main with its inputs passed in so tests can drive it.
+// runApplication is main with its inputs passed in so tests can drive it.
 // It returns the process exit code instead of calling os.Exit.
-func runApplicationin(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func runApplication(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	healthcheck := fs.Bool("healthcheck", false, "probe the local server's /healthz and exit")
