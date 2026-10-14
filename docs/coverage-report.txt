@@ -1,0 +1,70 @@
+== Backend: go test -coverprofile / go tool cover -func ==
+
+ok  	calculator/cmd/server	(cached)	coverage: 90.5% of statements
+ok  	calculator/internal/api	(cached)	coverage: 98.6% of statements
+ok  	calculator/internal/calc	(cached)	coverage: 97.6% of statements
+calculator/cmd/server/main.go:30:		main			0.0%
+calculator/cmd/server/main.go:39:		runApplication		91.7%
+calculator/cmd/server/main.go:75:		run			93.8%
+calculator/cmd/server/main.go:99:		newServer		100.0%
+calculator/cmd/server/main.go:111:		newRouter		100.0%
+calculator/cmd/server/main.go:128:		probe			100.0%
+calculator/cmd/server/main.go:141:		getEnv			100.0%
+calculator/internal/api/handler.go:65:		NewHandler		100.0%
+calculator/internal/api/handler.go:74:		handleCalculate		100.0%
+calculator/internal/api/handler.go:91:		handleHealth		100.0%
+calculator/internal/api/handler.go:95:		handleNotFound		100.0%
+calculator/internal/api/handler.go:99:		methodNotAllowed	100.0%
+calculator/internal/api/handler.go:108:		decodeJSON		95.7%
+calculator/internal/api/handler.go:147:		writeDecodeError	100.0%
+calculator/internal/api/handler.go:159:		writeCalcError		100.0%
+calculator/internal/api/handler.go:170:		writeError		100.0%
+calculator/internal/api/handler.go:174:		writeJSON		100.0%
+calculator/internal/api/middleware.go:15:	Logging			100.0%
+calculator/internal/api/middleware.go:34:	WriteHeader		100.0%
+calculator/internal/calc/calc.go:49:		Evaluate		100.0%
+calculator/internal/calc/calc.go:78:		divide			100.0%
+calculator/internal/calc/calc.go:85:		power			100.0%
+calculator/internal/calc/calc.go:92:		sqrt			100.0%
+calculator/internal/calc/calc.go:103:		normalize		87.5%
+total:						(statements)		95.1%
+
+== Frontend: vitest --coverage ==
+
+npm notice run calculator-frontend@1.0.0 test:coverage
+npm notice run vitest run --coverage
+
+ RUN  v5.0.4 /Users/said/Downloads/Calculator/frontend
+      Coverage enabled with v8
+
+ ✓ src/utils/operations.test.ts (10 tests) 3ms
+ ✓ src/utils/keys.test.ts (19 tests) 7ms
+ ✓ src/utils/calculatorReducer.test.ts (47 tests) 9ms
+ ✓ src/services/api.test.ts (26 tests) 21ms
+ ✓ src/App.test.tsx (1 test) 111ms
+ ✓ src/components/Calculator.test.tsx (25 tests) 1734ms
+
+ Test Files  6 passed (6)
+      Tests  128 passed (128)
+   Start at  05:53:04
+   Duration  2.56s (environment 45%, tests 34%, setup 10%, transform 5%, worker 4%, import 2%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   99.43 |    99.31 |     100 |     100 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  App.tsx          |     100 |      100 |     100 |     100 |                   
+ src/components    |     100 |      100 |     100 |     100 |                   
+  Calculator.tsx   |     100 |      100 |     100 |     100 |                   
+  ErrorToast.tsx   |     100 |      100 |     100 |     100 |                   
+ src/hooks         |     100 |      100 |     100 |     100 |                   
+  useCalculator.ts |     100 |      100 |     100 |     100 |                   
+ src/services      |     100 |      100 |     100 |     100 |                   
+  api.ts           |     100 |      100 |     100 |     100 |                   
+ src/utils         |   98.85 |    98.78 |     100 |     100 |                   
+  ...torReducer.ts |   98.63 |    98.71 |     100 |     100 | 118               
+  keys.ts          |     100 |      100 |     100 |     100 |                   
+  operations.ts    |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
