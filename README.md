@@ -103,7 +103,7 @@ Test files (`*_test.go`, `*.test.ts(x)`) sit next to the code they cover.
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.26 or later
 - Node.js 20 or later and npm
 - Docker and Docker Compose for containerized execution
 
@@ -373,7 +373,7 @@ Calculations are evaluated from left to right rather than using conventional mat
 2 + 3 × 4 = 20
 ```
 
-The calculator evaluates `2 + 3` first, then multiplies the result by `4`. Input is ignored while a request is in flight to avoid overlapping calculations changing the result out of order.
+The calculator evaluates `2 + 3` first, then multiplies the result by `4`, like a basic desk calculator that applies each operator as soon as the next one is pressed. Conventional precedence (`2 + 3 × 4 = 14`) needs whole-expression evaluation, which is what the unmerged `expression-mode` branch explores; see [Expression mode](#expression-mode-alternative-branch-not-merged) for why it is not in `main`. Input is ignored while a request is in flight to avoid overlapping calculations changing the result out of order.
 
 ## Design decisions and assumptions
 
