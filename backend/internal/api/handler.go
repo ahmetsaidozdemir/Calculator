@@ -26,7 +26,6 @@ type CalculateRequest struct {
 
 // CalculateResponse is the body returned on success.
 type CalculateResponse struct {
-	//	Operation string  `json:"operation"`
 	Result float64 `json:"result"`
 }
 

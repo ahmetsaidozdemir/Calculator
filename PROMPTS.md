@@ -125,14 +125,20 @@ Add a Github Action that runs tests.
 Make Github Action print its results.
 ```
 
-## Prompt 11: Image optimize
+## Prompt 12: Image optimize
 
 ```
 Make docker images optimized.
 ```
 
-## Prompt 12: Error Display
+## Prompt 13: Error Display
 
 ```
 Move error display into a pop-up/toast message box.
+```
+
+## Prompt 14: Responsive Compliance
+
+```
+Make sure new design complies with responsive design
 ```

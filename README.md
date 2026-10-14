@@ -378,6 +378,8 @@ Failures are split by what went wrong, because they need different handling:
 
 The explanation is shown in a pop-up outside the calculator (`ErrorToast.tsx`) rather than on the display, so long messages never have to fit on the screen. It is deliberately not a modal dialog: it does not take focus or block the keypad, so keyboard use is not interrupted. It uses `role="alert"` so screen readers announce it, closes with its × button (Enter and Space work on it), and disappears on the next key press. Closing it early leaves the red error state on the display until the next key. The display is never red by colour alone: calculation errors also say `Error`, and the pop-up carries the text.
 
+The pop-up adapts to the screen so it never covers a key: centred at the top with the same width as the calculator on wide windows and tablets, a full-width banner on phones (where the calculator is edge to edge), and over the display column on landscape phones, where the keypad fills the height. On the very smallest phones (about 320 × 568) it can briefly cover the small history line above the number until it is closed or the next key is pressed.
+
 A response counts as a calculation error only when the API returns one of its calculation codes (`division_by_zero`, `negative_square_root`, `not_a_real_number`, `out_of_range`); every other failure, including unknown codes, is treated as a system error, which is the safe default because it keeps the user's input.
 
 ### Calculation behavior

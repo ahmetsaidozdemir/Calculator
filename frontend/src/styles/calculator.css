@@ -25,6 +25,7 @@
   --op-strong: #3d4f5f;
   --edge: rgba(27, 35, 32, 0.3);
   --focus: #1f6feb;
+  --calc-width: 24rem;
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   color-scheme: light dark;
@@ -89,7 +90,8 @@ body {
 .calculator {
   display: grid;
   gap: 1rem;
-  width: min(100%, 24rem);
+  width: min(100%, var(--calc-width));
+  min-width: 0;
   padding: 1rem;
   background: var(--body);
   border-radius: 1.75rem;
@@ -105,6 +107,8 @@ body {
   flex-direction: column;
   align-items: flex-end;
   justify-content: flex-end;
+  width: 100%;
+  min-width: 0;
   min-height: 7.75rem;
   padding: 0.9rem 1.1rem 1rem;
   overflow: hidden;
@@ -168,11 +172,14 @@ body {
   position: fixed;
   z-index: 10;
   top: max(0.75rem, env(safe-area-inset-top));
-  left: 50%;
+  right: 0;
+  left: 0;
+  margin-inline: auto;
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  width: min(calc(100% - 1.5rem), 24rem);
+  /* Same width as .calculator: the page's 1rem side padding, capped at the device width. */
+  width: min(calc(100% - 2rem), var(--calc-width));
   padding: 0.75rem 0.5rem 0.75rem 1rem;
   background: var(--toast-bg);
   color: var(--toast-ink);
@@ -180,7 +187,6 @@ body {
   border-left-width: 6px;
   border-radius: 0.75rem;
   box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.5);
-  transform: translateX(-50%);
 }
 
 .toast-body {
@@ -227,7 +233,7 @@ body {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -0.5rem);
+    transform: translateY(-0.5rem);
   }
 }
 
@@ -235,6 +241,8 @@ body {
 
 .keypad {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-auto-rows: minmax(3.5rem, 4.25rem);
   gap: 0.6rem;
@@ -244,6 +252,7 @@ body {
   --key-bg: var(--digit);
   --key-ink: var(--digit-ink);
   appearance: none;
+  min-width: 0;
   border: 0;
   border-radius: 1rem;
   background: var(--key-bg);
@@ -321,14 +330,49 @@ body {
   .calculator {
     grid-template-rows: minmax(0, 1fr) auto;
     width: 100%;
-    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
-      max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    min-width: 0;
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
     border-radius: 0;
     box-shadow: none;
   }
 
+  .display,
+  .keypad {
+    width: 100%;
+    min-width: 0;
+  }
+
   .keypad {
     grid-auto-rows: clamp(3.5rem, 9.5dvh, 5rem);
+  }
+
+  /*
+   * The calculator body is edge to edge here, but its display and keys sit inside its padding.
+   * The pop-up lines up with them (same left/right inset), so it matches the visible calculator.
+   * Compact, so it hides as little of the display as possible on short phones.
+   */
+  .toast {
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+    left: max(1rem, env(safe-area-inset-left));
+    width: auto;
+    margin-inline: 0;
+    padding: 0.5rem 0.25rem 0.5rem 0.75rem;
+  }
+
+  .toast-title,
+  .toast-message {
+    font-size: 0.85rem;
+    line-height: 1.25;
+  }
+
+  .toast-close {
+    width: 2rem;
+    height: 2rem;
   }
 }
 
@@ -350,6 +394,16 @@ body {
 
   .display {
     min-height: 0;
+  }
+
+  /* The keypad fills the screen height here, so the pop-up sits over the (mostly empty) display column. */
+  .toast {
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: auto;
+    left: max(0.5rem, env(safe-area-inset-left));
+    width: min(20rem, 42vw);
+    margin-inline: 0;
+    border-radius: 0.75rem;
   }
 
   .keypad {
