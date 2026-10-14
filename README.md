@@ -151,7 +151,18 @@ Every setting has a default in `docker-compose.yml`, so no `.env` file is needed
 cp .env.example .env
 ```
 
-The frontend proxies requests under `/api/` to the backend. The backend also has a host port mapping in the current Compose configuration, allowing direct API testing.
+The frontend proxies requests under `/api/` to the backend, so the browser only ever talks to one origin.
+
+#### Why the backend is also published on port 8081
+
+Host port `8081` is opened on purpose so the API can be tried by hand with `curl` (see the [examples](#examples)) without going through the frontend. It is a convenience for development and review, not a requirement: the UI works through Nginx alone.
+
+For a production deployment there are two reasonable options:
+
+- **Close it (recommended).** Remove the `ports:` entry from the `backend` service in `docker-compose.yml`. The backend is then reachable only inside the Compose network, and all traffic enters through the Nginx container (`/api/*` is proxied to the Go service). This keeps a single public entry point and a smaller attack surface.
+- **Keep it open for direct API access.** This only makes sense if the API is meant to be consumed by other clients, and it needs the protections the project does not ship with: TLS, authentication, rate limiting, and a restricted CORS policy (it currently allows all origins).
+
+In either case, Nginx in this repository is an application-level proxy for the demo; a production setup would normally put a dedicated TLS-terminating reverse proxy or ingress in front of it.
 
 To stop the services:
 
@@ -394,6 +405,15 @@ This is appropriate for a general-purpose calculator, but binary floating-point 
 
 The `percent` operation means “`a` percent of `b`.” For example, `15` and `200` produce `30`. This interpretation is explicit in the API and UI rather than relying on an ambiguous `%` convention.
 
+### Expression mode (alternative branch, not merged)
+
+The `expression-mode` branch contains an alternative that accepts a whole expression (for example `2 + 3 × 4`, with conventional operator precedence) instead of one operation at a time. It is deliberately **not merged into `main`**: it is outside the scope of the assignment and it complicates the project's logic. There are two ways to make it work, and neither fits the current design cleanly:
+
+- **Rebuild the calculate endpoint.** The current `POST /api/v1/calculate` contract is one operation with one or two operands. Accepting expressions means a tokenizer, a parser, and a new request/response and error model on the backend, effectively a second API.
+- **Parse in the frontend.** The frontend could parse the expression and send the backend one operation at a time. That works with the existing API, but it splits the math logic across two places (precedence and evaluation order in the browser, arithmetic and edge cases on the server), which is not good practice: the backend would no longer be the single source of truth.
+
+Keeping `main` on the single-operation contract keeps the API small, the calculation rules in one layer, and the tests focused.
+
 ### Container design
 
 The production frontend and backend have separate images and responsibilities. Nginx serves static assets and proxies API requests; the backend runs as a non-root user in a minimal distroless runtime image.
@@ -455,7 +475,7 @@ The backend's `cmd/server` package is covered less than `calc` and `api` because
 The project intentionally focuses on calculation correctness and a clear API/UI boundary. It does not currently include:
 
 - Calculation history or persistent storage.
-- A full expression parser, parentheses, or conventional operator precedence.
+- A full expression parser, parentheses, or conventional operator precedence (an experimental version lives on the unmerged `expression-mode` branch, see [Expression mode](#expression-mode-alternative-branch-not-merged)).
 - User authentication or authorization.
 - Rate limiting.
 - Localization or locale-aware number formatting.
