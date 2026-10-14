@@ -104,7 +104,7 @@ Test files (`*_test.go`, `*.test.ts(x)`) sit next to the code they cover.
 ### Prerequisites
 
 - Go 1.26 or later
-- Node.js 20 or later and npm
+- Node.js 22.12 or later and npm
 - Docker and Docker Compose for containerized execution
 
 ### Run locally
