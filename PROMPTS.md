@@ -124,3 +124,9 @@ Add a Github Action that runs tests.
 ```
 Make Github Action print its results.
 ```
+
+## Prompt 11: Image optimize
+
+```
+Make docker images optimized.
+```
