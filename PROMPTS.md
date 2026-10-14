@@ -130,3 +130,9 @@ Make Github Action print its results.
 ```
 Make docker images optimized.
 ```
+
+## Prompt 12: Error Display
+
+```
+Move error display into a pop-up/toast message box.
+```

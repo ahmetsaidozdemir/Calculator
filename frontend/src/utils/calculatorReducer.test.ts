@@ -206,13 +206,13 @@ describe('results arriving', () => {
   });
 });
 
-describe('failures', () => {
-  const failed = () =>
-    reducer(run(...type('1'), op('divide'), ...type('0'), equals), { type: 'failed', message: 'cannot divide by zero' });
+describe('calculation failures (the numbers cannot be calculated)', () => {
+  const inFlight = () => run(...type('1'), op('divide'), ...type('0'), equals);
+  const failed = () => reducer(inFlight(), { type: 'failed', message: 'cannot divide by zero', kind: 'calculation' });
 
-  it('shows the message in sentence case with the attempted expression, and resets the calculation', () => {
+  it('records the message in sentence case with the attempted expression, and resets the calculation', () => {
     expect(failed()).toMatchObject({
-      error: 'Cannot divide by zero',
+      error: { kind: 'calculation', message: 'Cannot divide by zero', toastVisible: true },
       history: '1 ÷ 0 =',
       pending: null,
       request: null,
@@ -221,7 +221,7 @@ describe('failures', () => {
   });
 
   it('describes a failed square root', () => {
-    const state = reducer(run(...type('4'), { type: 'sign' }, sqrt), { type: 'failed', message: 'x' });
+    const state = reducer(run(...type('4'), { type: 'sign' }, sqrt), { type: 'failed', message: 'x', kind: 'calculation' });
     expect(state.history).toBe('√-4 =');
   });
 
@@ -235,8 +235,73 @@ describe('failures', () => {
     expect(reducer(failed(), { type: 'decimal' })).toMatchObject({ entry: '0.', error: null });
   });
 
+  it('is cleared by the clear key', () => {
+    expect(reducer(failed(), clear)).toEqual(initialState);
+  });
+});
+
+describe('system failures (the service could not answer)', () => {
+  const failed = (...actions: Action[]) =>
+    reducer(run(...actions), { type: 'failed', message: 'the service did not respond in time', kind: 'system' });
+  const failedEquals = () => failed(...type('8'), op('divide'), ...type('2'), equals);
+
+  it('keeps everything the user entered, and only records the error', () => {
+    const before = run(...type('8'), op('divide'), ...type('2'));
+    expect(failedEquals()).toEqual({
+      ...before,
+      request: null,
+      error: { kind: 'system', message: 'The service did not respond in time', toastVisible: true },
+    });
+  });
+
+  it('lets the same key be pressed again to retry', () => {
+    const state = reducer(failedEquals(), equals);
+    expect(state.error).toBeNull();
+    expect(state.request).toMatchObject({ operation: 'divide', operands: [8, 2] });
+  });
+
+  it('keeps a chained operation pending so its operator can be pressed again', () => {
+    const state = failed(...type('2'), op('add'), ...type('3'), op('multiply'));
+    expect(state).toMatchObject({ entry: '3', pending: { left: 2, operator: 'add' }, history: '2 +' });
+    expect(reducer(state, op('multiply')).request).toMatchObject({ operation: 'add', operands: [2, 3] });
+  });
+
+  it('keeps the operand for a failed square root', () => {
+    const state = failed(...type('9'), sqrt);
+    expect(state.entry).toBe('9');
+    expect(reducer(state, sqrt).request).toMatchObject({ operation: 'sqrt', operands: [9] });
+  });
+
+  it('clears the error and then handles the next key normally, continuing the number that was typed', () => {
+    expect(reducer(failedEquals(), { type: 'digit', digit: '5' })).toMatchObject({ entry: '25', error: null });
+    expect(reducer(failedEquals(), { type: 'backspace' }).error).toBeNull();
+  });
+
+  it('is cleared by the clear key', () => {
+    expect(reducer(failedEquals(), clear)).toEqual(initialState);
+  });
+});
+
+describe('failure handling in general', () => {
   it('ignores a failure when nothing is in flight', () => {
-    expect(reducer(initialState, { type: 'failed', message: 'x' })).toBe(initialState);
+    for (const kind of ['calculation', 'system'] as const) {
+      expect(reducer(initialState, { type: 'failed', message: 'x', kind })).toBe(initialState);
+    }
+  });
+
+  it('closes the error pop-up without clearing the error', () => {
+    const failed = reducer(run(...type('1'), op('divide'), ...type('0'), equals), {
+      type: 'failed',
+      message: 'cannot divide by zero',
+      kind: 'calculation',
+    });
+    const closed = reducer(failed, { type: 'dismissToast' });
+    expect(closed.error).toEqual({ kind: 'calculation', message: 'Cannot divide by zero', toastVisible: false });
+    expect(reducer(closed, { type: 'dismissToast' })).toBe(closed);
+  });
+
+  it('ignores closing the pop-up when there is no error', () => {
+    expect(reducer(initialState, { type: 'dismissToast' })).toBe(initialState);
   });
 });
 

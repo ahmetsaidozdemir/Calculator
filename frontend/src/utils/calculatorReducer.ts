@@ -17,6 +17,19 @@ export interface PendingRequest {
   then: { kind: 'equals' } | { kind: 'unary' } | { kind: 'chain'; next: BinaryOperationId };
 }
 
+/**
+ * `calculation`: the numbers cannot be calculated (division by zero, ...); the calculator resets.
+ * `system`: the service failed (timeout, network, ...); the user's input is kept so they can retry.
+ */
+export type ErrorKind = 'calculation' | 'system';
+
+export interface CalculatorError {
+  kind: ErrorKind;
+  message: string;
+  /** The message pop-up is open. Closing it does not clear the error on the display. */
+  toastVisible: boolean;
+}
+
 export interface CalculatorState {
   /** Text on the main display: the operand being typed, or the last result. */
   entry: string;
@@ -28,8 +41,8 @@ export interface CalculatorState {
   pending: { left: number; operator: BinaryOperationId } | null;
   /** Small line above the entry, e.g. "12 ÷" or "12 ÷ 4 =". */
   history: string;
-  /** Message from a failed calculation; shown instead of `entry` until the next key. */
-  error: string | null;
+  /** The last failure, until the next key press. Calculation errors replace the display text with "Error". */
+  error: CalculatorError | null;
   /** Backend call in flight. While set, input is ignored. */
   request: PendingRequest | null;
 }
@@ -44,7 +57,8 @@ export type Action =
   | { type: 'sqrt' }
   | { type: 'equals' }
   | { type: 'resolved'; value: number }
-  | { type: 'failed'; message: string };
+  | { type: 'failed'; message: string; kind: ErrorKind }
+  | { type: 'dismissToast' };
 
 export const initialState: CalculatorState = {
   entry: '0',
@@ -68,12 +82,15 @@ const countDigits = (entry: string) => entry.replace(/[^0-9]/g, '').length;
 
 export function reducer(state: CalculatorState, action: Action): CalculatorState {
   if (action.type === 'resolved') return resolve(state, action.value);
-  if (action.type === 'failed') return fail(state, action.message);
+  if (action.type === 'failed') return fail(state, action.message, action.kind);
+  if (action.type === 'dismissToast') return dismissToast(state);
   if (state.request) return state; // a calculation is in flight
 
   if (action.type === 'clear') return initialState;
   if (state.error) {
-    // The key that follows an error only dismisses it, except typing, which starts a new number.
+    // A service failure left the calculation untouched: the key clears the error and then works as usual.
+    if (state.error.kind === 'system') return reducer({ ...state, error: null }, action);
+    // After a calculation error the key only dismisses it, except typing, which starts a new number.
     return action.type === 'digit' || action.type === 'decimal' ? reducer(initialState, action) : initialState;
   }
 
@@ -184,9 +201,17 @@ function resolve(state: CalculatorState, value: number): CalculatorState {
   }
 }
 
-function fail(state: CalculatorState, message: string): CalculatorState {
+function fail(state: CalculatorState, message: string, kind: ErrorKind): CalculatorState {
   const request = state.request;
   if (!request) return state;
+  const error: CalculatorError = { kind, message: sentenceCase(message), toastVisible: true };
+  // The service failed, not the numbers: keep everything the user entered so they can press the key again.
+  if (kind === 'system') return { ...state, request: null, error };
   const [a, b] = request.operands;
-  return { ...initialState, error: sentenceCase(message), history: `${OPERATIONS[request.operation].format(a, b)} =` };
+  return { ...initialState, error, history: `${OPERATIONS[request.operation].format(a, b)} =` };
+}
+
+function dismissToast(state: CalculatorState): CalculatorState {
+  if (!state.error?.toastVisible) return state;
+  return { ...state, error: { ...state.error, toastVisible: false } };
 }

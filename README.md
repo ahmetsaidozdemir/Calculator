@@ -10,7 +10,7 @@ The frontend provides a responsive, keyboard-accessible calculator interface, wh
 - **Keyboard support:** perform calculations without relying exclusively on the on-screen keypad.
 - **Responsive UI:** layouts for mobile, desktop, and landscape phones.
 - **Accessibility:** descriptive control labels, status announcements, and visible calculation states.
-- **API-driven calculations:** arithmetic is handled by the backend, with structured errors displayed in the calculator UI.
+- **API-driven calculations:** arithmetic is handled by the backend, with structured errors shown as a short red "Error" on the display and an explanatory pop-up.
 - **Automated tests:** frontend and backend unit tests, with coverage reports.
 - **Containerized deployment:** separate Nginx frontend and distroless Go backend images, orchestrated with Docker Compose.
 
@@ -76,7 +76,8 @@ The frontend and backend have separate responsibilities:
 │       ├── App.tsx
 │       ├── main.tsx
 │       ├── components/
-│       │   └── Calculator.tsx
+│       │   ├── Calculator.tsx
+│       │   └── ErrorToast.tsx
 │       ├── hooks/
 │       │   └── useCalculator.ts
 │       ├── services/
@@ -342,7 +343,7 @@ The calculator's interaction logic is implemented as a pure state machine in `ca
 
 The UI prevents invalid input rather than reporting it afterwards. There is no free-text field: numbers are built key by key, so letters and malformed values cannot be entered. The reducer allows a single decimal point, caps an operand at 15 digits (matching the backend's 15 significant digits), ignores the sign key on zero, and disables square root while an operator is waiting for its second operand. Keys are ignored while a request is in flight.
 
-Anything that is only detectable mathematically (division by zero, square root of a negative number, overflow) is validated by the backend, and its error message is shown in the display. The backend validates independently of the UI, so direct API clients get the same checks.
+Anything that is only detectable mathematically (division by zero, square root of a negative number, overflow) is validated by the backend, and its error is reported as described under [Error display](#error-display). The backend validates independently of the UI, so direct API clients get the same checks.
 
 ### Centralized API access
 
@@ -354,16 +355,30 @@ The calculator supports keyboard entry for digits, arithmetic operators, decimal
 
 ### Timeouts and failure behavior
 
-Every request has a 5 second budget (`REQUEST_TIMEOUT_MS` in `api.ts`), covering both the response headers and reading the body, so a stalled backend cannot freeze the keypad. Failures never leave the calculator stuck: the display shows a short message and the next key press starts a new calculation.
+Every request has a 5 second budget (`REQUEST_TIMEOUT_MS` in `api.ts`), covering both the response headers and reading the body, so a stalled backend cannot freeze the keypad. Failures never leave the calculator stuck: an error pop-up explains what happened, and the next key press clears it.
 
-| Situation | Error code | Message shown |
-|---|---|---|
-| No complete response within 5 seconds | `timeout` | the service did not respond in time |
-| Network failure, backend unreachable | `network_error` | the service could not be reached |
-| Backend or proxy returned something that is not the expected JSON | `unexpected_response` | unexpected response (with the HTTP status) |
-| API error (e.g. division by zero) | the API's own code | the API's message |
+| Situation | Error code | Kind | Message shown in the pop-up |
+|---|---|---|---|
+| No complete response within 5 seconds | `timeout` | system | the service did not respond in time |
+| Network failure, backend unreachable | `network_error` | system | the service could not be reached |
+| Backend or proxy returned something that is not the expected JSON | `unexpected_response` | system | unexpected response (with the HTTP status) |
+| Nginx cannot reach the backend | `service_unavailable` | system | the service is unavailable |
+| Calculation error (e.g. division by zero) | the API's own code | calculation | the API's message |
 
 Behind Nginx the proxy timeouts (2 s connect, 4 s read) are shorter than the browser's, so a dead backend produces a structured `503 service_unavailable` JSON response instead of a hung request. In-flight requests are also cancelled when the calculator unmounts: `useCalculator` passes an `AbortSignal` to `calculate`, which aborts the `fetch`, and a late answer is ignored.
+
+### Error display
+
+Failures are split by what went wrong, because they need different handling:
+
+| Kind | Examples | Display | Pop-up | Calculator state |
+|---|---|---|---|---|
+| **Calculation** | division by zero, square root of a negative number, result out of range | Short red `Error`, with the attempted expression in the history line (`1 ÷ 0 = Error`) | The API's message | Reset. Typing a digit starts a new number; any other key just clears the error. |
+| **System** | timeout, network failure, unexpected response, service unavailable | Numbers stay visible, display outlined in red | What went wrong, with a hint to try again | Kept. Press the same key again to retry; nothing has to be retyped. |
+
+The explanation is shown in a pop-up outside the calculator (`ErrorToast.tsx`) rather than on the display, so long messages never have to fit on the screen. It is deliberately not a modal dialog: it does not take focus or block the keypad, so keyboard use is not interrupted. It uses `role="alert"` so screen readers announce it, closes with its × button (Enter and Space work on it), and disappears on the next key press. Closing it early leaves the red error state on the display until the next key. The display is never red by colour alone: calculation errors also say `Error`, and the pop-up carries the text.
+
+A response counts as a calculation error only when the API returns one of its calculation codes (`division_by_zero`, `negative_square_root`, `not_a_real_number`, `out_of_range`); every other failure, including unknown codes, is treated as a system error, which is the safe default because it keeps the user's input.
 
 ### Calculation behavior
 

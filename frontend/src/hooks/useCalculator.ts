@@ -19,8 +19,11 @@ export function useCalculator(): { state: CalculatorState; dispatch: Dispatch<Ac
       },
       (error: unknown) => {
         if (signal.aborted) return;
-        const message = error instanceof ApiError ? error.message : 'something went wrong, please try again';
-        dispatch({ type: 'failed', message });
+        if (error instanceof ApiError) {
+          dispatch({ type: 'failed', message: error.message, kind: error.kind });
+        } else {
+          dispatch({ type: 'failed', message: 'something went wrong, please try again', kind: 'system' });
+        }
       },
     );
     return () => controller.abort();

@@ -105,29 +105,83 @@ describe('Calculator (mouse and touch)', () => {
     await waitFor(() => expect(display()).toHaveTextContent('15% of 200 = 30'));
   });
 
-  it('shows the server error inside the display, then recovers on the next digit', async () => {
+  it('shows a short red "Error" on the display and the explanation in a pop-up outside the calculator', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new ApiError('division_by_zero', 'cannot divide by zero', 422));
     render(<Calculator />);
 
     await tap(user, '1', 'Divide', '0', 'Equals');
 
-    await waitFor(() => expect(display()).toHaveTextContent('1 ÷ 0 = Cannot divide by zero'));
-    expect(display().querySelector('.entry')).toHaveClass('error');
-
-    await tap(user, '5');
-    expect(display()).toHaveTextContent('5');
+    const toast = await screen.findByRole('alert');
+    expect(toast).toHaveTextContent('Cannot divide by zero');
+    expect(display()).not.toContainElement(toast);
+    expect(display()).toHaveTextContent('1 ÷ 0 = Error');
     expect(display()).not.toHaveTextContent('Cannot');
+    expect(display()).toHaveClass('display-error');
+    expect(display().querySelector('.entry')).toHaveClass('error');
   });
 
-  it('hides unexpected error details behind a generic message', async () => {
+  it('removes the pop-up and recovers on the next digit after a calculation error', async () => {
+    const user = userEvent.setup();
+    calculateMock.mockRejectedValue(new ApiError('division_by_zero', 'cannot divide by zero', 422));
+    render(<Calculator />);
+
+    await tap(user, '1', 'Divide', '0', 'Equals');
+    await screen.findByRole('alert');
+
+    await tap(user, '5');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(display()).toHaveTextContent('5');
+    expect(display()).not.toHaveClass('display-error');
+  });
+
+  it('closes the pop-up with its button but leaves the error on the display', async () => {
+    const user = userEvent.setup();
+    calculateMock.mockRejectedValue(new ApiError('negative_square_root', 'cannot take the square root of a negative number', 422));
+    render(<Calculator />);
+
+    await tap(user, '4', 'Change sign', 'Square root');
+    await screen.findByRole('alert');
+
+    await user.click(screen.getByRole('button', { name: 'Dismiss error' }));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(display()).toHaveTextContent('Error');
+    expect(display()).toHaveClass('display-error');
+  });
+
+  it('keeps the numbers after a service failure, so pressing = again retries', async () => {
+    const user = userEvent.setup();
+    calculateMock
+      .mockRejectedValueOnce(new ApiError('timeout', 'the calculator service did not respond in time, please try again'))
+      .mockResolvedValueOnce(4);
+    render(<Calculator />);
+
+    await tap(user, '8', 'Divide', '2', 'Equals');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('did not respond in time');
+    expect(display()).toHaveTextContent('2');
+    expect(display()).not.toHaveTextContent('Error');
+    expect(display()).toHaveClass('display-error');
+
+    await tap(user, 'Equals');
+
+    await waitFor(() => expect(display()).toHaveTextContent('8 ÷ 2 = 4'));
+    expect(calculateMock).toHaveBeenCalledTimes(2);
+    expect(calculateMock).toHaveBeenLastCalledWith('divide', [8, 2], expect.any(AbortSignal));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(display()).not.toHaveClass('display-error');
+  });
+
+  it('hides unexpected error details behind a generic message in the pop-up', async () => {
     const user = userEvent.setup();
     calculateMock.mockRejectedValue(new Error('boom: stack trace'));
     render(<Calculator />);
 
     await tap(user, '1', 'Add', '2', 'Equals');
 
-    await waitFor(() => expect(display()).toHaveTextContent(/something went wrong/i));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/something went wrong/i);
+    expect(screen.getByRole('alert')).not.toHaveTextContent('boom');
     expect(display()).not.toHaveTextContent('boom');
   });
 
@@ -276,6 +330,23 @@ describe('Calculator (physical keyboard)', () => {
     expect(calculateMock).toHaveBeenCalledTimes(1);
     expect(calculateMock).toHaveBeenCalledWith('add', [3, 4], expect.any(AbortSignal));
     await waitFor(() => expect(display()).toHaveTextContent('3 + 4 = 7'));
+  });
+
+  it('lets Enter close the pop-up instead of pressing =', async () => {
+    const user = userEvent.setup();
+    calculateMock.mockRejectedValue(new ApiError('timeout', 'the calculator service did not respond in time'));
+    render(<Calculator />);
+
+    await user.keyboard('1+2{Enter}');
+    await screen.findByRole('alert');
+    expect(calculateMock).toHaveBeenCalledTimes(1);
+
+    await user.tab(); // the pop-up comes first in the tab order
+    expect(screen.getByRole('button', { name: 'Dismiss error' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(calculateMock).toHaveBeenCalledTimes(1);
   });
 
   it('leaves browser shortcuts and unmapped keys alone', async () => {

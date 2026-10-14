@@ -249,3 +249,19 @@ describe('calculate cancellation', () => {
     expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
   });
 });
+
+describe('ApiError.kind', () => {
+  it.each(['division_by_zero', 'negative_square_root', 'not_a_real_number', 'out_of_range'])(
+    'treats %s as a calculation error',
+    (code) => {
+      expect(new ApiError(code, 'x', 422).kind).toBe('calculation');
+    },
+  );
+
+  it.each(['timeout', 'network_error', 'unexpected_response', 'service_unavailable', 'invalid_json', 'internal_error'])(
+    'treats %s as a system error',
+    (code) => {
+      expect(new ApiError(code, 'x').kind).toBe('system');
+    },
+  );
+});

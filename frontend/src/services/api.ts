@@ -7,6 +7,14 @@ const REQUEST_URL = BASE_URI + ENDPOINT;
 /** How long to wait for the backend before giving up, so a dead service cannot freeze the keypad. */
 export const REQUEST_TIMEOUT_MS = 5_000;
 
+/** Codes the API uses when the calculation itself cannot be done (the user's input is the problem). */
+const CALCULATION_ERROR_CODES: ReadonlySet<string> = new Set([
+  'division_by_zero',
+  'negative_square_root',
+  'not_a_real_number',
+  'out_of_range',
+]);
+
 /** A failure reported by the API, or a transport/protocol failure talking to it. */
 export class ApiError extends Error {
   constructor(
@@ -16,6 +24,14 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = 'ApiError';
+  }
+
+  /**
+   * `calculation`: the numbers cannot be calculated (e.g. division by zero).
+   * `system`: anything else (timeout, network, bad response), which says nothing about the numbers.
+   */
+  get kind(): 'calculation' | 'system' {
+    return CALCULATION_ERROR_CODES.has(this.code) ? 'calculation' : 'system';
   }
 }
 
