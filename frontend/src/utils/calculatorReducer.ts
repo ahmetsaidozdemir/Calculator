@@ -118,7 +118,7 @@ export function reducer(state: CalculatorState, action: Action): CalculatorState
       if (state.awaiting) return state;
       return { ...state, request: { operation: 'sqrt', operands: [Number(state.entry)], then: { kind: 'unary' } } };
     case 'equals':
-      if (!state.pending) return state;
+      if (!state.pending || state.awaiting) return state;
       return {
         ...state,
         request: {

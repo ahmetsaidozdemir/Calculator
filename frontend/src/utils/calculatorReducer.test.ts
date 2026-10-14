@@ -128,8 +128,9 @@ describe('equals', () => {
     });
   });
 
-  it('reuses the first operand when pressed straight after an operator', () => {
-    expect(run(...type('5'), op('add'), equals).request?.operands).toEqual([5, 5]);
+  it('does nothing when pressed straight after an operator', () => {
+    const state = run(...type('5'), op('add'));
+    expect(reducer(state, equals)).toBe(state);
   });
 
   it('does nothing without an operation in progress', () => {
